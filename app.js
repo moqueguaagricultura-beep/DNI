@@ -42,42 +42,20 @@ const refs = {
     closeModalBtn: document.getElementById('closeModalBtn')
 };
 
-// --- Sonido de Cámara (Sintetizador Web) ---
+// --- Sonido de Cámara (Audio HTML) ---
+const beepAudio = new Audio("data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq");
+// El base64 superior es un silencio, pero añadimos una URL de "camera shutter" limpia
+beepAudio.src = "https://actions.google.com/sounds/v1/water/camera_shutter.ogg";
+beepAudio.preload = "auto";
+
 function playShutterSound() {
     try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
-        
-        // Oscilador 1: Click agudo
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.type = 'square';
-        osc1.frequency.setValueAtTime(800, ctx.currentTime);
-        osc1.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.05);
-        gain1.gain.setValueAtTime(1, ctx.currentTime);
-        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.start();
-        osc1.stop(ctx.currentTime + 0.05);
-
-        // Oscilador 2: Ruido mecánico grave
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(200, ctx.currentTime);
-        osc2.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.1);
-        gain2.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start();
-        osc2.stop(ctx.currentTime + 0.1);
-    } catch(e) {
-        console.log("No se pudo reproducir el sonido (quizás falta interacción del usuario primero)", e);
-    }
+        beepAudio.currentTime = 0;
+        beepAudio.play().catch(e => console.log("Audio blockeado por navegador", e));
+    } catch(e) {}
 }
+        
+
 
 // --- Inicialización ---
 document.addEventListener('DOMContentLoaded', () => {
