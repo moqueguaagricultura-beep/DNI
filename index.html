@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Escáner DNI Pro</title>
     <meta name="description" content="Escanea la parte de adelante y atrás de tu tarjeta para generar un PDF fácilmente.">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- jsPDF  -->
@@ -21,7 +21,7 @@
         </header>
 
         <main>
-            <!-- Interface for Camera -->
+            <!-- Pantalla inicial: cámara -->
             <section class="camera-section" id="cameraSection">
                 <div class="camera-placeholder">
                     <div class="camera-icon-wrap">
@@ -33,7 +33,6 @@
                     <p class="camera-hint">Coloca el DNI sobre una superficie plana con buena iluminación</p>
                 </div>
 
-                <!-- Input oculto para llamar a la app de cámara oficial (alta resolución) -->
                 <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
 
                 <button class="btn btn-capture-main" id="captureBtn">
@@ -45,19 +44,37 @@
                 </button>
             </section>
 
-            <!-- Editor Modal (Cropper under demand) -->
+            <!-- Corrección de Perspectiva Trapezoidal -->
+            <section class="perspective-section hidden" id="perspectiveSection">
+                <p class="persp-hint">Arrastra las esquinas <strong>◉</strong> hasta los bordes de la tarjeta</p>
+                <div class="perspective-container" id="perspContainer">
+                    <canvas id="perspCanvas"></canvas>
+                    <div class="persp-handle" id="handleTL"></div>
+                    <div class="persp-handle" id="handleTR"></div>
+                    <div class="persp-handle" id="handleBR"></div>
+                    <div class="persp-handle" id="handleBL"></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="cancelPerspBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="applyPerspBtn">▶ Corregir</button>
+                </div>
+            </section>
+
+            <!-- Recorte fino (Cropper.js) — solo desde galería por toque -->
             <section class="cropper-section hidden" id="cropperSection">
                 <div class="cropper-wrapper">
-                    <img id="cropperImage" src="" alt="Edición de recorte" />
+                    <img id="cropperImage" src="" alt="Edición de recorte"
+                         oncontextmenu="return false;"
+                         style="-webkit-touch-callout:none; user-select:none;" />
                 </div>
-                <p class="instruction-text" style="text-align: center; margin-bottom:10px;">Ajusta el margen de la tarjeta</p>
+                <p class="instruction-text" style="text-align:center; margin-bottom:10px;">Ajusta el margen de la tarjeta</p>
                 <div class="action-buttons">
-                    <button class="btn btn-secondary" id="cancelCropBtn">Borrar Foto</button>
+                    <button class="btn btn-secondary" id="cancelCropBtn">Cancelar</button>
                     <button class="btn btn-primary" id="confirmCropBtn">Guardar Recorte</button>
                 </div>
             </section>
 
-            <!-- Gallery / Preview Section -->
+            <!-- Galería / Revisión -->
             <section class="preview-section hidden" id="previewSection">
                 <h2>Revisión</h2>
                 <div class="images-container">
@@ -101,6 +118,6 @@
 
     <!-- Cropper.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=14"></script>
 </body>
 </html>

@@ -163,7 +163,57 @@ section {
     box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
-/* Cropper Section */
+/* ---- Perspectiva Trapezoidal ---- */
+.perspective-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.persp-hint {
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    padding: 0 10px;
+}
+
+.perspective-container {
+    position: relative;
+    width: 100%;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    background: #000;
+    touch-action: none;   /* evitar scroll mientras se arrastra */
+    -webkit-touch-callout: none;
+    user-select: none;
+}
+
+#perspCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    -webkit-touch-callout: none;
+    user-select: none;
+    touch-action: none;
+}
+
+.persp-handle {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.85);
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    cursor: grab;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    z-index: 10;
+    transition: transform 0.1s;
+}
+.persp-handle:active { transform: scale(1.2); cursor: grabbing; }
+
 .cropper-wrapper {
     width: 100%;
     height: 350px;
