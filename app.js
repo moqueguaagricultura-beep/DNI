@@ -184,7 +184,7 @@ function drawPerspOverlay() {
 
     // 1. Imagen completa atenuada
     ctx.drawImage(img, 0, 0, W, H);
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillStyle = 'rgba(0,0,0,0.52)';
     ctx.fillRect(0, 0, W, H);
 
     // 2. Imagen sin atenuar dentro del cuadrilátero
@@ -199,9 +199,10 @@ function drawPerspOverlay() {
     ctx.drawImage(img, 0, 0, W, H);
     ctx.restore();
 
-    // 3. Borde azul del cuadrilátero
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2;
+    // 3. Borde discontinuo del cuadrilátero
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
     ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(c[0].x, c[0].y);
@@ -210,12 +211,70 @@ function drawPerspOverlay() {
     ctx.lineTo(c[3].x, c[3].y);
     ctx.closePath();
     ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 4. Marcadores en L muy visibles en cada esquina
+    const ARM = Math.min(W, H) * 0.12;
+    // Dirección de los brazos: hacia el interior del cuadro
+    const dirs = [
+        { hx: 1,  hy: 0,  vx: 0,  vy: 1  }, // TL: derecha y abajo
+        { hx: -1, hy: 0,  vx: 0,  vy: 1  }, // TR: izquierda y abajo
+        { hx: -1, hy: 0,  vx: 0,  vy: -1 }, // BR: izquierda y arriba
+        { hx: 1,  hy: 0,  vx: 0,  vy: -1 }, // BL: derecha y arriba
+    ];
+
+    c.forEach((pt, i) => {
+        const d = dirs[i];
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowBlur = 8;
+
+        // Brazo horizontal + vertical (L blanca gruesa)
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pt.x + d.hx * ARM, pt.y + d.hy * ARM);
+        ctx.lineTo(pt.x, pt.y);
+        ctx.lineTo(pt.x + d.vx * ARM, pt.y + d.vy * ARM);
+        ctx.stroke();
+
+        // L azul encima
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(pt.x + d.hx * ARM, pt.y + d.hy * ARM);
+        ctx.lineTo(pt.x, pt.y);
+        ctx.lineTo(pt.x + d.vx * ARM, pt.y + d.vy * ARM);
+        ctx.stroke();
+
+        // Círculo blanco grande en pivote
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Borde azul del círculo
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        // Cruz interior
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(pt.x - 5, pt.y); ctx.lineTo(pt.x + 5, pt.y);
+        ctx.moveTo(pt.x, pt.y - 5); ctx.lineTo(pt.x, pt.y + 5);
+        ctx.stroke();
+
+        ctx.restore();
+    });
 }
 
 function positionHandles() {
-    const canvas = refs.perspCanvas;
     const handles = [refs.handleTL, refs.handleTR, refs.handleBR, refs.handleBL];
-    const HALF = 22; // radio del handle (44px)
+    const HALF = 28; // radio del handle (56px)
     handles.forEach((h, i) => {
         const c = state.perspCorners[i];
         h.style.left = (c.x - HALF) + 'px';
@@ -225,7 +284,7 @@ function positionHandles() {
 
 function setupHandleDrag(handle, idx) {
     const canvas = refs.perspCanvas;
-    const HALF = 22;
+    const HALF = 28; // igual que positionHandles
 
     // Eliminar listeners previos clonando el nodo
     const fresh = handle.cloneNode(true);

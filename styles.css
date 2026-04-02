@@ -199,20 +199,30 @@ section {
 
 .persp-handle {
     position: absolute;
-    width: 44px;
-    height: 44px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: rgba(59, 130, 246, 0.85);
-    border: 3px solid #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    background: rgba(255, 255, 255, 0.15);
+    border: 3px solid rgba(255,255,255,0.8);
+    box-shadow: 0 0 0 3px #3b82f6, 0 4px 14px rgba(0,0,0,0.6);
     cursor: grab;
     touch-action: none;
     -webkit-touch-callout: none;
     user-select: none;
     z-index: 10;
-    transition: transform 0.1s;
+    animation: handlePulse 1.6s ease-in-out infinite;
 }
-.persp-handle:active { transform: scale(1.2); cursor: grabbing; }
+.persp-handle:active {
+    transform: scale(1.25);
+    cursor: grabbing;
+    animation: none;
+    background: rgba(59, 130, 246, 0.4);
+}
+
+@keyframes handlePulse {
+    0%, 100% { box-shadow: 0 0 0 3px #3b82f6, 0 0 0 6px rgba(59,130,246,0.25); }
+    50%       { box-shadow: 0 0 0 3px #3b82f6, 0 0 0 12px rgba(59,130,246,0.08); }
+}
 
 .cropper-wrapper {
     width: 100%;
