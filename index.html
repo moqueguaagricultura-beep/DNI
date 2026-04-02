@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Escáner DNI Pro</title>
+    <meta name="description" content="Escanea ambos lados de tu tarjeta y genera un PDF fácilmente.">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Escáner de Tarjetas</h1>
+            <p>Captura el anverso y reverso para generar tu PDF</p>
+        </header>
+
+        <main>
+            <!-- Interface for Camera -->
+            <section class="camera-section" id="cameraSection">
+                <div class="video-container">
+                    <video id="cameraStream" autoplay playsinline></video>
+                    <!-- Overlay frame for guiding the document position -->
+                    <div class="guide-frame"></div>
+                </div>
+                
+                <div class="capture-controls">
+                    <button class="btn btn-primary btn-circular" id="captureBtn" aria-label="Capturar foto">
+                        <span class="btn-icon"></span>
+                    </button>
+                    <p id="captureInstruction" class="instruction-text">Capturar Anverso</p>
+                </div>
+            </section>
+
+            <!-- Gallery / Preview Section -->
+            <section class="preview-section hidden" id="previewSection">
+                <h2>Revisión de Capturas</h2>
+                <div class="images-container">
+                    <div class="image-box" id="frontPreviewBox">
+                        <img id="frontImage" src="" alt="Anverso de la tarjeta" class="hidden">
+                        <div class="placeholder active" id="frontPlaceholder">Anverso</div>
+                        <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar anverso">↻</button>
+                    </div>
+                    <div class="image-box" id="backPreviewBox">
+                        <img id="backImage" src="" alt="Reverso de la tarjeta" class="hidden">
+                        <div class="placeholder active" id="backPlaceholder">Reverso</div>
+                        <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar reverso">↻</button>
+                    </div>
+                </div>
+
+                <div class="document-details">
+                    <label for="fileName">Nombre del archivo (PDF)</label>
+                    <input type="text" id="fileName" placeholder="Ej: DNI_Juan_Perez" value="Mi_Documento">
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="generatePdfBtn" disabled>Visualizar PDF</button>
+                    <button class="btn btn-primary" id="sharePdfBtn" disabled>Compartir PDF</button>
+                </div>
+            </section>
+
+            <!-- Canvas (hidden) used to capture frames -->
+            <canvas id="captureCanvas" class="hidden"></canvas>
+        </main>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal hidden" id="errorModal">
+        <div class="modal-content">
+            <h3>Error</h3>
+            <p id="errorMessage"></p>
+            <button class="btn btn-primary" id="closeModalBtn">Entendido</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
