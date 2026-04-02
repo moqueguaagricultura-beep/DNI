@@ -30,7 +30,6 @@ const refs = {
     fileNameInput: document.getElementById('fileName'),
     generatePdfBtn: document.getElementById('generatePdfBtn'),
     sharePdfBtn: document.getElementById('sharePdfBtn'),
-    resetAppBtn: document.getElementById('resetAppBtn'),
     
     errorModal: document.getElementById('errorModal'),
     errorMessage: document.getElementById('errorMessage'),
@@ -66,7 +65,6 @@ function bindEvents() {
     
     refs.generatePdfBtn.addEventListener('click', () => handlePdfAction('download'));
     refs.sharePdfBtn.addEventListener('click', () => handlePdfAction('share'));
-    refs.resetAppBtn.addEventListener('click', resetApp);
     
     refs.closeModalBtn.addEventListener('click', hideError);
 }
@@ -225,33 +223,6 @@ function retakePhoto(side) {
     refs.previewSection.classList.add('hidden');
     
     // Iniciar cámara de nuevo
-    initCamera();
-}
-
-function resetApp() {
-    // Confirmación opcional (deshabilitada para que sea más rápido)
-    // if(!confirm("¿Estás seguro de borrar todo y empezar de nuevo?")) return;
-
-    state.frontImageBase64 = null;
-    state.backImageBase64 = null;
-    state.currentCaptureMode = 'front';
-    
-    refs.frontImage.src = "";
-    refs.frontImage.classList.add('hidden');
-    refs.frontPlaceholder.classList.add('active');
-    refs.retakeFrontBtn.classList.add('hidden');
-
-    refs.backImage.src = "";
-    refs.backImage.classList.add('hidden');
-    refs.backPlaceholder.classList.add('active');
-    refs.retakeBackBtn.classList.add('hidden');
-
-    refs.captureInstruction.textContent = 'Capturar Adelante';
-    refs.fileNameInput.value = 'Mi_Documento';
-    
-    checkReadyState();
-
-    refs.previewSection.classList.add('hidden');
     initCamera();
 }
 
