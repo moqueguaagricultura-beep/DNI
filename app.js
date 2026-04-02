@@ -117,7 +117,7 @@ function showCropper(imageSrc, forceAspect = false) {
 
     const options = {
         viewMode: 1,
-        autoCropArea: 0.85,
+        autoCropArea: 0.95,  // Recuadre grande desde el inicio
         dragMode: 'move',
         background: false,
         guides: true,

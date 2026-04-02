@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Escáner DNI Pro</title>
     <meta name="description" content="Escanea la parte de adelante y atrás de tu tarjeta para generar un PDF fácilmente.">
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- jsPDF  -->
@@ -23,25 +23,26 @@
         <main>
             <!-- Interface for Camera -->
             <section class="camera-section" id="cameraSection">
-                <div class="video-container" id="staticVideoPlaceholder">
-                    <div style="text-align:center; color:#94a3b8;">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="camera-placeholder">
+                    <div class="camera-icon-wrap">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                             <circle cx="12" cy="13" r="4"></circle>
                         </svg>
-                        <p style="margin-top:10px;">Presiona el botón para abrir tu cámara</p>
                     </div>
+                    <p class="camera-hint">Coloca el DNI sobre una superficie plana con buena iluminación</p>
                 </div>
-                
-                <div class="capture-controls">
-                    <!-- Botón falso que activará la verdadera cámara -->
-                    <button class="btn btn-primary btn-circular" id="captureBtn" aria-label="Abrir cámara">
-                        <span class="btn-icon"></span>
-                    </button>
-                    <!-- Input oculto para llamar a la app de cámara oficial (alta resolución) -->
-                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
-                    <p id="captureInstruction" class="instruction-text">Tomar Foto Adelante</p>
-                </div>
+
+                <!-- Input oculto para llamar a la app de cámara oficial (alta resolución) -->
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
+
+                <button class="btn btn-capture-main" id="captureBtn">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    <span id="captureInstruction">Tomar Foto Adelante</span>
+                </button>
             </section>
 
             <!-- Editor Modal (Cropper under demand) -->
@@ -100,6 +101,6 @@
 
     <!-- Cropper.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 </body>
 </html>
