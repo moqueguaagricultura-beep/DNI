@@ -81,8 +81,9 @@ async function initCamera() {
         const constraints = {
             video: {
                 facingMode: 'environment', // Trasera
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                width: { ideal: 3840, min: 1920 },
+                height: { ideal: 2160, min: 1080 },
+                advanced: [{ focusMode: "continuous" }]
             },
             audio: false
         };
@@ -140,9 +141,12 @@ function handleCaptureClick() {
     refs.canvas.height = sHeight;
     
     const ctx = refs.canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(refs.video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
     
-    const base64Image = refs.canvas.toDataURL('image/jpeg', 0.85);
+    // Guardar en la mayor calidad posible de JPEG (0.95+)
+    const base64Image = refs.canvas.toDataURL('image/jpeg', 0.98);
 
     // 3. Guardar estado
     if (state.currentCaptureMode === 'front') {
