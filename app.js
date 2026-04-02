@@ -111,42 +111,80 @@ function stopCamera() {
 }
 
 // --- Subsistema de Captura y Recorte ---
-function handleCaptureClick() {
+async function handleCaptureClick() {
     if (!refs.video.videoWidth) return;
 
-    // 1. Sonido
+    // 1. Sonido y Vibración (Feedback)
     playShutterSound();
-
-    // 2. Extraer fotograma tal cual se ve (WYSIWYG con object-fit: cover en ratio 1.58)
-    const vw = refs.video.videoWidth;
-    const vh = refs.video.videoHeight;
-    const targetRatio = 1.58; 
-    let sWidth = vw;
-    let sHeight = vh;
-    let sx = 0;
-    let sy = 0;
-
-    const videoRatio = vw / vh;
-    if (videoRatio > targetRatio) {
-        // El video es más ancho que el cuadro (corta lados)
-        sWidth = vh * targetRatio;
-        sx = (vw - sWidth) / 2;
-    } else {
-        // El video es más alto que el cuadro (corta arriba/abajo)
-        sHeight = vw / targetRatio;
-        sy = (vh - sHeight) / 2;
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]); // Vibración rítmica rápida
     }
 
-    refs.canvas.width = sWidth;
-    refs.canvas.height = sHeight;
-    
-    const ctx = refs.canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(refs.video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
-    
-    // Guardar en la mayor calidad posible de JPEG (0.95+)
-    const base64Image = refs.canvas.toDataURL('image/jpeg', 0.98);
+    // 2. Extraer fotograma tal cual se ve (WYSIWYG con object-fit: cover en ratio 1.58)
+    const targetRatio = 1.58; 
+    let base64Image;
+
+    try {
+        // Intento Alta Resolución Opcíon 1: Usar sensor directo de cámara (Android)
+        const track = state.stream.getVideoTracks()[0];
+        const imageCapture = new ImageCapture(track);
+        const blob = await imageCapture.takePhoto();
+        const bmp = await createImageBitmap(blob);
+        
+        const vw = bmp.width;
+        const vh = bmp.height;
+        let sWidth = vw;
+        let sHeight = vh;
+        let sx = 0; let sy = 0;
+
+        const imageRatio = vw / vh;
+        if (imageRatio > targetRatio) {
+            sWidth = vh * targetRatio;
+            sx = (vw - sWidth) / 2;
+        } else {
+            sHeight = vw / targetRatio;
+            sy = (vh - sHeight) / 2;
+        }
+
+        refs.canvas.width = sWidth;
+        refs.canvas.height = sHeight;
+        
+        const ctx = refs.canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bmp, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+        base64Image = refs.canvas.toDataURL('image/jpeg', 0.98);
+
+    } catch(err) {
+        console.log("ImageCapture no soportado o fallido, usando fallback de video:", err);
+        // Fallback: Tomar frame de video
+        const vw = refs.video.videoWidth;
+        const vh = refs.video.videoHeight;
+        
+        let sWidth = vw;
+        let sHeight = vh;
+        let sx = 0; let sy = 0;
+
+        const videoRatio = vw / vh;
+        if (videoRatio > targetRatio) {
+            sWidth = vh * targetRatio;
+            sx = (vw - sWidth) / 2;
+        } else {
+            sHeight = vw / targetRatio;
+            sy = (vh - sHeight) / 2;
+        }
+
+        refs.canvas.width = sWidth;
+        refs.canvas.height = sHeight;
+        
+        const ctx = refs.canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(refs.video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+        
+        // Guardar en la mayor calidad posible de JPEG (0.95+)
+        base64Image = refs.canvas.toDataURL('image/jpeg', 0.98);
+    }
 
     // 3. Guardar estado
     if (state.currentCaptureMode === 'front') {
