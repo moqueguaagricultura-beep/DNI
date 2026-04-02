@@ -4,18 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Escáner DNI Pro</title>
-    <meta name="description" content="Escanea ambos lados de tu tarjeta y genera un PDF fácilmente.">
+    <meta name="description" content="Escanea la parte de adelante y atrás de tu tarjeta para generar un PDF fácilmente.">
     <link rel="stylesheet" href="styles.css">
-    <!-- Google Fonts for modern typography -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- jsPDF Library -->
+    <!-- jsPDF  -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 </head>
 <body>
     <div class="app-container">
         <header>
             <h1>Escáner de Tarjetas</h1>
-            <p>Captura el anverso y reverso para generar tu PDF</p>
+            <p>Captura ADELANTE y ATRÁS para tu PDF</p>
         </header>
 
         <main>
@@ -23,31 +25,50 @@
             <section class="camera-section" id="cameraSection">
                 <div class="video-container">
                     <video id="cameraStream" autoplay playsinline></video>
-                    <!-- Overlay frame for guiding the document position -->
-                    <div class="guide-frame"></div>
+                    <!-- Improved Overlay mask to encourage good framing -->
+                    <div class="camera-mask">
+                        <div class="guide-frame">
+                            <div class="corner top-left"></div>
+                            <div class="corner top-right"></div>
+                            <div class="corner bottom-left"></div>
+                            <div class="corner bottom-right"></div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="capture-controls">
                     <button class="btn btn-primary btn-circular" id="captureBtn" aria-label="Capturar foto">
                         <span class="btn-icon"></span>
                     </button>
-                    <p id="captureInstruction" class="instruction-text">Capturar Anverso</p>
+                    <p id="captureInstruction" class="instruction-text">Capturar Adelante</p>
+                </div>
+            </section>
+
+            <!-- Cropper Modal -->
+            <section class="cropper-section hidden" id="cropperSection">
+                <div class="cropper-wrapper">
+                    <img id="cropperImage" src="" alt="Recorte" />
+                </div>
+                <p class="instruction-text" style="text-align: center;">Ajusta el margen de la tarjeta</p>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="cancelCropBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmCropBtn">Aceptar Recorte</button>
                 </div>
             </section>
 
             <!-- Gallery / Preview Section -->
             <section class="preview-section hidden" id="previewSection">
-                <h2>Revisión de Capturas</h2>
+                <h2>Revisión</h2>
                 <div class="images-container">
                     <div class="image-box" id="frontPreviewBox">
-                        <img id="frontImage" src="" alt="Anverso de la tarjeta" class="hidden">
-                        <div class="placeholder active" id="frontPlaceholder">Anverso</div>
-                        <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar anverso">↻</button>
+                        <img id="frontImage" src="" alt="Adelante de la tarjeta" class="hidden">
+                        <div class="placeholder active" id="frontPlaceholder">Adelante</div>
+                        <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar adelante">↻</button>
                     </div>
                     <div class="image-box" id="backPreviewBox">
-                        <img id="backImage" src="" alt="Reverso de la tarjeta" class="hidden">
-                        <div class="placeholder active" id="backPlaceholder">Reverso</div>
-                        <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar reverso">↻</button>
+                        <img id="backImage" src="" alt="Atrás de la tarjeta" class="hidden">
+                        <div class="placeholder active" id="backPlaceholder">Atrás</div>
+                        <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar atrás">↻</button>
                     </div>
                 </div>
 
@@ -56,9 +77,14 @@
                     <input type="text" id="fileName" placeholder="Ej: DNI_Juan_Perez" value="Mi_Documento">
                 </div>
 
-                <div class="action-buttons">
-                    <button class="btn btn-secondary" id="generatePdfBtn" disabled>Visualizar PDF</button>
-                    <button class="btn btn-primary" id="sharePdfBtn" disabled>Compartir PDF</button>
+                <div class="action-buttons-wrap">
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="generatePdfBtn" disabled>Ver PDF</button>
+                        <button class="btn btn-primary" id="sharePdfBtn" disabled>Compartir</button>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-danger" id="resetAppBtn">Volver / Borrar Todo</button>
+                    </div>
                 </div>
             </section>
 
@@ -76,6 +102,8 @@
         </div>
     </div>
 
+    <!-- Cropper.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
