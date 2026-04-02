@@ -23,15 +23,24 @@
         <main>
             <!-- Interface for Camera -->
             <section class="camera-section" id="cameraSection">
-                <div class="video-container">
-                    <video id="cameraStream" autoplay playsinline></video>
+                <div class="video-container" id="staticVideoPlaceholder">
+                    <div style="text-align:center; color:#94a3b8;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <p style="margin-top:10px;">Presiona el botón para abrir tu cámara</p>
+                    </div>
                 </div>
                 
                 <div class="capture-controls">
-                    <button class="btn btn-primary btn-circular" id="captureBtn" aria-label="Capturar foto">
+                    <!-- Botón falso que activará la verdadera cámara -->
+                    <button class="btn btn-primary btn-circular" id="captureBtn" aria-label="Abrir cámara">
                         <span class="btn-icon"></span>
                     </button>
-                    <p id="captureInstruction" class="instruction-text">Capturar Adelante</p>
+                    <!-- Input oculto para llamar a la app de cámara oficial (alta resolución) -->
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
+                    <p id="captureInstruction" class="instruction-text">Tomar Foto Adelante</p>
                 </div>
             </section>
 
@@ -40,10 +49,10 @@
                 <div class="cropper-wrapper">
                     <img id="cropperImage" src="" alt="Edición de recorte" />
                 </div>
-                <p class="instruction-text" style="text-align: center; margin-bottom:10px;">Ajusta el recuadro</p>
+                <p class="instruction-text" style="text-align: center; margin-bottom:10px;">Ajusta el margen de la tarjeta</p>
                 <div class="action-buttons">
-                    <button class="btn btn-secondary" id="cancelCropBtn">Cancelar</button>
-                    <button class="btn btn-primary" id="confirmCropBtn">Guardar</button>
+                    <button class="btn btn-secondary" id="cancelCropBtn">Borrar Foto</button>
+                    <button class="btn btn-primary" id="confirmCropBtn">Guardar Recorte</button>
                 </div>
             </section>
 
@@ -76,7 +85,6 @@
                 </div>
             </section>
 
-            <!-- Canvas (hidden) used to capture frames -->
             <canvas id="captureCanvas" class="hidden"></canvas>
         </main>
     </div>
@@ -92,6 +100,6 @@
 
     <!-- Cropper.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=12"></script>
 </body>
 </html>
