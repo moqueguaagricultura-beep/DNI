@@ -118,40 +118,6 @@ section {
     object-fit: cover;
 }
 
-.camera-mask {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.5); /* Dimmed area outside the box */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.guide-frame {
-    width: 85%;
-    height: 35%; /* Landscape card proportion approx */
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-    position: relative;
-    background: transparent;
-    border-radius: var(--border-radius-sm);
-    /* No solid border, we use corners */
-}
-
-/* Four corners style for scanner look */
-.corner {
-    position: absolute;
-    width: 25px;
-    height: 25px;
-    border-color: #10b981; /* Emerald/scanner green */
-    border-style: solid;
-    border-width: 0;
-}
-.corner.top-left { top: -2px; left: -2px; border-top-width: 4px; border-left-width: 4px; border-top-left-radius: 8px;}
-.corner.top-right { top: -2px; right: -2px; border-top-width: 4px; border-right-width: 4px; border-top-right-radius: 8px;}
-.corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 4px; border-left-width: 4px; border-bottom-left-radius: 8px; }
-.corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 4px; border-right-width: 4px; border-bottom-right-radius: 8px; }
-
 /* Capture Controls */
 .capture-controls {
     display: flex;
