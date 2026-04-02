@@ -4,7 +4,8 @@ const state = {
     backImageBase64: null,
     currentCaptureMode: 'front', // 'front' (Adelante) o 'back' (Atrás)
     stream: null,
-    cropperInfo: null // Guardará la ref a la instancia de cropper
+    cropperInfo: null, // Guardará la ref a la instancia de cropper
+    editingSide: null // 'front' o 'back'
 };
 
 // --- Elementos del DOM ---
@@ -16,6 +17,11 @@ const refs = {
     
     cameraSection: document.getElementById('cameraSection'),
     previewSection: document.getElementById('previewSection'),
+    cropperSection: document.getElementById('cropperSection'),
+    
+    cropperImage: document.getElementById('cropperImage'),
+    confirmCropBtn: document.getElementById('confirmCropBtn'),
+    cancelCropBtn: document.getElementById('cancelCropBtn'),
     
     frontPreviewBox: document.getElementById('frontPreviewBox'),
     frontImage: document.getElementById('frontImage'),
@@ -62,6 +68,12 @@ function bindEvents() {
     
     refs.retakeFrontBtn.addEventListener('click', () => retakePhoto('front'));
     refs.retakeBackBtn.addEventListener('click', () => retakePhoto('back'));
+    
+    refs.frontImage.addEventListener('click', () => openCropper('front'));
+    refs.backImage.addEventListener('click', () => openCropper('back'));
+
+    refs.confirmCropBtn.addEventListener('click', handleCropConfirm);
+    refs.cancelCropBtn.addEventListener('click', handleCropCancel);
     
     refs.generatePdfBtn.addEventListener('click', () => handlePdfAction('download'));
     refs.sharePdfBtn.addEventListener('click', () => handlePdfAction('share'));
@@ -167,6 +179,68 @@ async function handleCaptureClick() {
         refs.previewSection.classList.remove('hidden');
         checkReadyState();
     }
+}
+
+// --- Subsistema de Edición / Recorte On-Demand ---
+function openCropper(side) {
+    if (side === 'front' && !state.frontImageBase64) return;
+    if (side === 'back' && !state.backImageBase64) return;
+
+    state.editingSide = side;
+    const base64 = side === 'front' ? state.frontImageBase64 : state.backImageBase64;
+    
+    refs.previewSection.classList.add('hidden');
+    refs.cropperSection.classList.remove('hidden');
+
+    // Destruir si existía previo
+    if (state.cropperInfo) {
+        state.cropperInfo.destroy();
+    }
+
+    refs.cropperImage.src = base64;
+    state.cropperInfo = new Cropper(refs.cropperImage, {
+        viewMode: 1, 
+        autoCropArea: 0.9,
+        dragMode: 'move',
+        background: false,
+        guides: true
+    });
+}
+
+function handleCropCancel() {
+    if (state.cropperInfo) {
+        state.cropperInfo.destroy();
+        state.cropperInfo = null;
+    }
+    refs.cropperSection.classList.add('hidden');
+    refs.previewSection.classList.remove('hidden');
+}
+
+function handleCropConfirm() {
+    if (!state.cropperInfo) return;
+
+    const croppedCanvas = state.cropperInfo.getCroppedCanvas({
+        width: 1500, // Limitar un poco para que el PDF no pese 10MB
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+
+    const croppedBase64 = croppedCanvas.toDataURL('image/jpeg', 0.95);
+
+    state.cropperInfo.destroy();
+    state.cropperInfo = null;
+
+    if (state.editingSide === 'front') {
+        state.frontImageBase64 = croppedBase64;
+        updatePreviewUI('front', croppedBase64);
+    } else {
+        state.backImageBase64 = croppedBase64;
+        updatePreviewUI('back', croppedBase64);
+    }
+
+    refs.cropperSection.classList.add('hidden');
+    refs.previewSection.classList.remove('hidden');
+    checkReadyState();
 }
 
 function updatePreviewUI(side, base64) {

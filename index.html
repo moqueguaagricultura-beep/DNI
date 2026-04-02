@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- jsPDF  -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 </head>
 <body>
     <div class="app-container">
@@ -33,19 +35,29 @@
                 </div>
             </section>
 
-
+            <!-- Editor Modal (Cropper under demand) -->
+            <section class="cropper-section hidden" id="cropperSection">
+                <div class="cropper-wrapper">
+                    <img id="cropperImage" src="" alt="Edición de recorte" />
+                </div>
+                <p class="instruction-text" style="text-align: center; margin-bottom:10px;">Ajusta el recuadro</p>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="cancelCropBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmCropBtn">Guardar</button>
+                </div>
+            </section>
 
             <!-- Gallery / Preview Section -->
             <section class="preview-section hidden" id="previewSection">
                 <h2>Revisión</h2>
                 <div class="images-container">
-                    <div class="image-box" id="frontPreviewBox">
-                        <img id="frontImage" src="" alt="Adelante de la tarjeta" class="hidden">
+                    <div class="image-box" id="frontPreviewBox" title="Toca para recortar">
+                        <img id="frontImage" src="" alt="Adelante de la tarjeta" class="hidden clickable-image">
                         <div class="placeholder active" id="frontPlaceholder">Adelante</div>
                         <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar adelante">↻</button>
                     </div>
-                    <div class="image-box" id="backPreviewBox">
-                        <img id="backImage" src="" alt="Atrás de la tarjeta" class="hidden">
+                    <div class="image-box" id="backPreviewBox" title="Toca para recortar">
+                        <img id="backImage" src="" alt="Atrás de la tarjeta" class="hidden clickable-image">
                         <div class="placeholder active" id="backPlaceholder">Atrás</div>
                         <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar atrás">↻</button>
                     </div>
@@ -78,6 +90,8 @@
         </div>
     </div>
 
-    <script src="app.js?v=9"></script>
+    <!-- Cropper.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="app.js?v=10"></script>
 </body>
 </html>

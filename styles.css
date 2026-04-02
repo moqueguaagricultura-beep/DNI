@@ -142,6 +142,20 @@ section {
 
 
 
+/* Cropper Section */
+.cropper-wrapper {
+    width: 100%;
+    height: 350px;
+    background: #000;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+#cropperImage {
+    max-width: 100%;
+    display: block;
+}
+
 /* Preview Section */
 .images-container {
     display: flex;
@@ -177,6 +191,15 @@ section {
 }
 .placeholder.active {
     display: block;
+}
+
+.clickable-image {
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+.clickable-image:active {
+    transform: scale(0.95);
+    opacity: 0.8;
 }
 
 .btn-retake {
