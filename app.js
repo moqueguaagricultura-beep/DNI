@@ -15,12 +15,7 @@ const refs = {
     captureInstruction: document.getElementById('captureInstruction'),
     
     cameraSection: document.getElementById('cameraSection'),
-    cropperSection: document.getElementById('cropperSection'),
     previewSection: document.getElementById('previewSection'),
-    
-    cropperImage: document.getElementById('cropperImage'),
-    confirmCropBtn: document.getElementById('confirmCropBtn'),
-    cancelCropBtn: document.getElementById('cancelCropBtn'),
     
     frontPreviewBox: document.getElementById('frontPreviewBox'),
     frontImage: document.getElementById('frontImage'),
@@ -66,9 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function bindEvents() {
     refs.captureBtn.addEventListener('click', handleCaptureClick);
     
-    refs.confirmCropBtn.addEventListener('click', handleCropConfirm);
-    refs.cancelCropBtn.addEventListener('click', handleCropCancel);
-    
     refs.retakeFrontBtn.addEventListener('click', () => retakePhoto('front'));
     refs.retakeBackBtn.addEventListener('click', () => retakePhoto('back'));
     
@@ -103,7 +95,6 @@ async function initCamera() {
         };
         
         refs.cameraSection.classList.remove('hidden');
-        refs.cropperSection.classList.add('hidden');
         refs.previewSection.classList.add('hidden');
     } catch (err) {
         console.error("Error accediendo a la cámara:", err);
@@ -125,93 +116,48 @@ function handleCaptureClick() {
     // 1. Sonido
     playShutterSound();
 
-    // 2. Extraer fotograma
-    const width = refs.video.videoWidth;
-    const height = refs.video.videoHeight;
-    refs.canvas.width = width;
-    refs.canvas.height = height;
+    // 2. Extraer fotograma tal cual se ve (WYSIWYG con object-fit: cover en ratio 1.58)
+    const vw = refs.video.videoWidth;
+    const vh = refs.video.videoHeight;
+    const targetRatio = 1.58; 
+    let sWidth = vw;
+    let sHeight = vh;
+    let sx = 0;
+    let sy = 0;
+
+    const videoRatio = vw / vh;
+    if (videoRatio > targetRatio) {
+        // El video es más ancho que el cuadro (corta lados)
+        sWidth = vh * targetRatio;
+        sx = (vw - sWidth) / 2;
+    } else {
+        // El video es más alto que el cuadro (corta arriba/abajo)
+        sHeight = vw / targetRatio;
+        sy = (vh - sHeight) / 2;
+    }
+
+    refs.canvas.width = sWidth;
+    refs.canvas.height = sHeight;
     
     const ctx = refs.canvas.getContext('2d');
-    ctx.drawImage(refs.video, 0, 0, width, height);
+    ctx.drawImage(refs.video, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
     
-    const base64RawImage = refs.canvas.toDataURL('image/jpeg', 0.9);
+    const base64Image = refs.canvas.toDataURL('image/jpeg', 0.85);
 
-    // 3. Pausar y ocultar cámara, mostrar Cropper
-    refs.video.pause();
-    refs.cameraSection.classList.add('hidden');
-    refs.cropperSection.classList.remove('hidden');
-
-    initCropper(base64RawImage);
-}
-
-function initCropper(imageSrc) {
-    // Si ya había uno, lo destruimos
-    if (state.cropperInfo) {
-        state.cropperInfo.destroy();
-    }
-
-    refs.cropperImage.src = imageSrc;
-    
-    state.cropperInfo = new Cropper(refs.cropperImage, {
-        aspectRatio: 1.58, // Proporción natural aproximada de un DNI/Tarjeta
-        viewMode: 1, // Evitar que el cuadro salga de los límites de la foto
-        autoCropArea: 0.8,
-        dragMode: 'move', // Permite mover la imagen
-        guides: true,
-        background: false
-    });
-}
-
-function handleCropCancel() {
-    // Ocultar cropper y volver a cámara (cancelar foto actual)
-    if (state.cropperInfo) {
-        state.cropperInfo.destroy();
-        state.cropperInfo = null;
-    }
-    refs.cropperSection.classList.add('hidden');
-    
-    if (!state.frontImageBase64 || !state.backImageBase64) {
-        initCamera(); // Asegurar que arranque de nuevo si no completamos
-    } else {
-        // Estábamos re-tomando y cancelamos, regresamos a preview
-        refs.previewSection.classList.remove('hidden');
-    }
-}
-
-function handleCropConfirm() {
-    if (!state.cropperInfo) return;
-
-    // Obtener la imagen ya recortada en un canvas ajustado
-    const croppedCanvas = state.cropperInfo.getCroppedCanvas({
-        width: 1000, // Fijar un máximo de resolución para que el PDF no pese demasiado
-        imageSmoothingEnabled: true,
-        imageSmoothingQuality: 'high'
-    });
-
-    const croppedBase64 = croppedCanvas.toDataURL('image/jpeg', 0.85);
-
-    // Limpiar 
-    state.cropperInfo.destroy();
-    state.cropperInfo = null;
-    refs.cropperSection.classList.add('hidden');
-
-    // Procesar estado
+    // 3. Guardar estado
     if (state.currentCaptureMode === 'front') {
-        state.frontImageBase64 = croppedBase64;
-        updatePreviewUI('front', croppedBase64);
+        state.frontImageBase64 = base64Image;
+        updatePreviewUI('front', base64Image);
         state.currentCaptureMode = 'back';
         refs.captureInstruction.textContent = 'Capturar Atrás';
-        
-        // Volver a encender cámara para reverso
-        initCamera();
     } else {
-        state.backImageBase64 = croppedBase64;
-        updatePreviewUI('back', croppedBase64);
-        state.currentCaptureMode = 'front'; // Reset para futuro
-        refs.captureInstruction.textContent = 'Todo capturado';
+        state.backImageBase64 = base64Image;
+        updatePreviewUI('back', base64Image);
+        state.currentCaptureMode = 'front';
+        refs.captureInstruction.textContent = 'Ambos capturados';
         
-        // Transición a vista previa definitivamente
         stopCamera();
+        refs.cameraSection.classList.add('hidden');
         refs.previewSection.classList.remove('hidden');
         checkReadyState();
     }
@@ -278,45 +224,32 @@ function checkReadyState() {
 async function generatePDFBlob() {
     const { jsPDF } = window.jspdf;
     
-    // Al haber usado Cropper, ya tenemos una proporción fija (1.58), 
-    // pero leeremos el aspecto de la imagen extraída al canvas para no fallar.
-    
     const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4"
     });
 
-    const pdfWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const maxImgWidth = pdfWidth - (margin * 2);
+    // Un DNI estándar mide aproximadamente 85.6 mm x 54 mm.
+    // Al 150% de tamaño, el ancho es 85.6 * 1.5 = 128.4 mm.
+    const pdfPageWidth = doc.internal.pageSize.getWidth();
+    const desiredWidth = 128.4; 
+    
+    // Al estar forzado el ratio a 1.58, calculamos altura exacta sin deformar
+    const desiredHeight = desiredWidth / 1.58; 
 
-    // Función auxiliar para obtener dimensiones base64
-    const getImageDimensions = (base64) => {
-        return new Promise((resolve) => {
-            const i = new Image();
-            i.onload = () => resolve({ w: i.width, h: i.height });
-            i.src = base64;
-        });
-    };
+    // Centrar horizontalmente en la página A4
+    const marginX = (pdfPageWidth - desiredWidth) / 2;
+    let startY = 20; // Margen superior
 
-    let startY = margin;
-
-    // Agregar adelante
+    // Función auxiliar para forzar tamaño
     if(state.frontImageBase64) {
-        const dimF = await getImageDimensions(state.frontImageBase64);
-        const ratioF = dimF.w / dimF.h;
-        const imgH = maxImgWidth / ratioF; // Alto relativo a la proporción real del recorte
-        doc.addImage(state.frontImageBase64, 'JPEG', margin, startY, maxImgWidth, imgH);
-        startY += imgH + 15; // Dejar espacio
+        doc.addImage(state.frontImageBase64, 'JPEG', marginX, startY, desiredWidth, desiredHeight);
+        startY += desiredHeight + 15; // Dejar espacio para la siguiente tarjeta
     }
     
-    // Agregar Atrás
     if(state.backImageBase64) {
-        const dimB = await getImageDimensions(state.backImageBase64);
-        const ratioB = dimB.w / dimB.h;
-        const imgH = maxImgWidth / ratioB;
-        doc.addImage(state.backImageBase64, 'JPEG', margin, startY, maxImgWidth, imgH);
+        doc.addImage(state.backImageBase64, 'JPEG', marginX, startY, desiredWidth, desiredHeight);
     }
 
     return doc.output('blob');

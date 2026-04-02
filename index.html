@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Escáner DNI Pro</title>
     <meta name="description" content="Escanea la parte de adelante y atrás de tu tarjeta para generar un PDF fácilmente.">
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- jsPDF  -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Cropper.js CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 </head>
 <body>
     <div class="app-container">
@@ -35,17 +33,7 @@
                 </div>
             </section>
 
-            <!-- Cropper Modal -->
-            <section class="cropper-section hidden" id="cropperSection">
-                <div class="cropper-wrapper">
-                    <img id="cropperImage" src="" alt="Recorte" />
-                </div>
-                <p class="instruction-text" style="text-align: center;">Ajusta el margen de la tarjeta</p>
-                <div class="action-buttons">
-                    <button class="btn btn-secondary" id="cancelCropBtn">Cancelar</button>
-                    <button class="btn btn-primary" id="confirmCropBtn">Aceptar Recorte</button>
-                </div>
-            </section>
+
 
             <!-- Gallery / Preview Section -->
             <section class="preview-section hidden" id="previewSection">
@@ -93,8 +81,6 @@
         </div>
     </div>
 
-    <!-- Cropper.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
 </body>
 </html>
