@@ -22,6 +22,7 @@ const state = {
 const refs = {
     cameraInput:       document.getElementById('cameraInput'),
     captureBtn:        document.getElementById('captureBtn'),
+    galleryBtnHome:    document.getElementById('galleryBtnHome'),
     captureInstruction:document.getElementById('captureInstruction'),
 
     cameraSection:     document.getElementById('cameraSection'),
@@ -91,6 +92,10 @@ function hideAll() {
 
 function bindEvents() {
     refs.captureBtn.addEventListener('click', () => refs.cameraInput.click());
+    refs.galleryBtnHome.addEventListener('click', () => {
+        state.editingSide = state.currentCaptureMode; // Usar el modo actual (adelante/atrás)
+        refs.galleryInput.click();
+    });
     refs.cameraInput.addEventListener('change', handleNativeCapture);
 
     // Perspectiva
@@ -452,7 +457,7 @@ function setupHandleDrag(handle, idx) {
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
     const radius = 80;
-    const zoom = 1.8; // El usuario pidió reducir un poco el zoom
+    const zoom = 1.5; // El usuario pidió reducir el zoom a 1.5
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
