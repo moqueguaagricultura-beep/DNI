@@ -902,21 +902,27 @@ async function runOCR(side, base64) {
         });
 
         if (dniMatch || namesFound.length > 0) {
-            let val = refs.fileNameInput.value === 'Mi_Documento' ? '' : refs.fileNameInput.value;
+            let finalDni = dniMatch ? dniMatch[0] : '';
+            let firstSurname = '';
             
-            if (dniMatch && !val.includes(dniMatch[0])) {
-                val = `DNI_${dniMatch[0]}${val ? '_' + val : ''}`;
+            // Buscar la primera palabra en mayúsculas de 3+ letras de los nombres encontrados
+            for (const nameGroup of namesFound) {
+                const words = nameGroup.split(/\s+/).filter(w => w.length >= 3);
+                if (words.length > 0) {
+                    firstSurname = words[0];
+                    break;
+                }
             }
 
-            // Tomar los primeros dos grupos de nombres encontrados (suelen ser Surnames y Names)
-            namesFound.slice(0, 3).forEach(nameGroup => {
-                const firstWord = nameGroup.split(' ')[0];
-                if (!val.includes(firstWord)) {
-                    val += (val ? '_' : '') + firstWord;
-                }
-            });
+            // Excluir palabras genéricas que suelen aparecer en DNI pero no son apellidos
+            const blacklist = ['DNI', 'IDENTIDAD', 'DOCUMENTO', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA'];
+            if (blacklist.includes(firstSurname.toUpperCase())) firstSurname = '';
+
+            let val = '';
+            if (finalDni) val += finalDni;
+            if (firstSurname) val += (val ? '_' : '') + firstSurname;
             
-            const finalName = val.replace(/__+/g, '_').replace(/^_|_$/g, '').toUpperCase().substring(0, 45);
+            const finalName = val.toUpperCase().replace(/__+/g, '_').substring(0, 30);
             if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {
