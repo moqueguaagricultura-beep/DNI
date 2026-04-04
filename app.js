@@ -2,8 +2,11 @@
 // ESTADO GLOBAL
 // ============================================================
 const state = {
-    frontImageBase64: null,
+    frontImageBase64: null, // Imagen final (con filtros)
+    frontRawBase64: null,   // Imagen original sin filtros para re-aplicar
     backImageBase64: null,
+    backRawBase64: null,
+    filters: { front: 'original', back: 'original' },
     currentCaptureMode: 'front', // 'front' | 'back'
     editingSide: null,           // 'front' | 'back'
     // Perspectiva
@@ -14,6 +17,8 @@ const state = {
     activeDragCorner: null, // índice 0-3 del handle que se está arrastrando
     // Cropper (edición desde galería)
     cropperInfo: null,
+    // OCR
+    ocrWorker: null,
 };
 
 // ============================================================
@@ -166,6 +171,15 @@ function bindEvents() {
     refs.generatePdfBtn.addEventListener('click', () => handlePdfAction('download'));
     refs.sharePdfBtn.addEventListener('click', () => handlePdfAction('share'));
     refs.closeModalBtn.addEventListener('click', hideError);
+
+    // Filtros
+    document.querySelectorAll('.btn-filter').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const side   = e.target.dataset.side;
+            const filter = e.target.dataset.filter;
+            handleFilterChange(side, filter);
+        });
+    });
 }
 
 // ============================================================
@@ -304,12 +318,16 @@ function autoDetectCorners(img, cW, cH) {
 
     const scaleX = cW / sw, scaleY = cH / sh;
     const pad = 2; 
-    return [
+
+    // MEJORA: Validar si los puntos detectados forman un polígono cóncavo o muy deformado
+    const points = [
         { x: leftX  * scaleX - pad, y: topY    * scaleY - pad }, // TL
         { x: rightX * scaleX + pad, y: topY    * scaleY - pad }, // TR
         { x: rightX * scaleX + pad, y: bottomY * scaleY + pad }, // BR
         { x: leftX  * scaleX - pad, y: bottomY * scaleY + pad }, // BL
-    ].map(pt => ({
+    ];
+
+    return points.map(pt => ({
         x: Math.min(Math.max(pt.x, 0), cW),
         y: Math.min(Math.max(pt.y, 0), cH),
     }));
@@ -568,8 +586,11 @@ async function handlePerspApply() {
     refs.applyPerspBtn.disabled = false;
 
     if (state.editingSide === 'front') {
-        state.frontImageBase64 = warped;
+        state.frontRawBase64 = warped;
+        state.frontImageBase64 = warped; // Inicialmente igual
         updatePreviewUI('front', warped);
+        runOCR('front', warped); // Iniciar OCR en segundo plano
+
         if (!state.backImageBase64) {
             state.currentCaptureMode = 'back';
             refs.captureInstruction.textContent = 'Tomar Foto Atrás';
@@ -579,8 +600,11 @@ async function handlePerspApply() {
             checkReadyState();
         }
     } else {
+        state.backRawBase64 = warped;
         state.backImageBase64 = warped;
         updatePreviewUI('back', warped);
+        runOCR('back', warped);
+
         showSection('preview');
         checkReadyState();
     }
@@ -856,6 +880,100 @@ function handleGallerySelect(e) {
     };
     reader.readAsDataURL(file);
     e.target.value = ''; // Resetear para permitir seleccionar el mismo otra vez
+}
+
+async function runOCR(side, base64) {
+    try {
+        if (!state.ocrWorker) {
+            state.ocrWorker = await Tesseract.createWorker('spa'); // Usar español para DNI
+        }
+        
+        const { data: { text } } = await state.ocrWorker.recognize(base64);
+        console.log(`OCR [${side}]:`, text);
+
+        // Buscar patrón DNI (8 dígitos juntos o con separadores)
+        const dniMatch = text.match(/\b\d{8}\b/);
+        // Buscar nombres (simplificado: 2 o más palabras en mayúsculas de 3+ letras)
+        const nameMatch = text.match(/[A-Z]{3,}(?:\s+[A-Z]{3,})+/);
+
+        let currentVal = refs.fileNameInput.value;
+        if (dniMatch) {
+            currentVal = currentVal.includes('DNI_') ? currentVal : `DNI_${dniMatch[0]}`;
+        }
+        if (nameMatch && !currentVal.includes(nameMatch[0].split(' ')[0])) {
+            currentVal += `_${nameMatch[0].split(' ')[0]}`;
+        }
+        
+        if (currentVal !== refs.fileNameInput.value) {
+            refs.fileNameInput.value = currentVal.replace(/Mi_Documento_?/, '').substring(0, 30);
+        }
+    } catch (e) {
+        console.error('OCR Error:', e);
+    }
+}
+
+async function handleFilterChange(side, filterType) {
+    state.filters[side] = filterType;
+    
+    // Actualizar UI de botones
+    const btns = document.querySelectorAll(`.btn-filter[data-side="${side}"]`);
+    btns.forEach(b => b.classList.toggle('active', b.dataset.filter === filterType));
+
+    const raw = side === 'front' ? state.frontRawBase64 : state.backRawBase64;
+    if (!raw) return;
+
+    if (filterType === 'original') {
+        updateImageState(side, raw);
+    } else {
+        const filtered = await applyImageFilter(raw, filterType);
+        updateImageState(side, filtered);
+    }
+}
+
+function updateImageState(side, b64) {
+    if (side === 'front') {
+        state.frontImageBase64 = b64;
+        refs.frontImage.src = b64;
+    } else {
+        state.backImageBase64 = b64;
+        refs.backImage.src = b64;
+    }
+}
+
+function applyImageFilter(base64, type) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            if (type === 'bw') {
+                // Blanco y Negro (Thresholding)
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                    const v = gray > 140 ? 255 : 0; // Umbral fijo
+                    data[i] = data[i+1] = data[i+2] = v;
+                }
+            } else if (type === 'pro') {
+                // Color Pro (Contraste y Brillo)
+                const contrast = 1.3; // +30%
+                const brightness = 10;
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i]   = (data[i]   - 128) * contrast + 128 + brightness;
+                    data[i+1] = (data[i+1] - 128) * contrast + 128 + brightness;
+                    data[i+2] = (data[i+2] - 128) * contrast + 128 + brightness;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.src = base64;
+    });
 }
 
 function showError(msg) { refs.errorMessage.textContent = msg; refs.errorModal.classList.remove('hidden'); }

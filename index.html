@@ -21,6 +21,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <!-- Tesseract.js OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -95,16 +97,29 @@
             <!-- Galería / Revisión -->
             <section class="preview-section hidden" id="previewSection">
                 <h2>Revisión</h2>
-                <div class="images-container">
-                    <div class="image-box" id="frontPreviewBox" title="Toca para recortar">
-                        <img id="frontImage" src="" alt="Adelante de la tarjeta" class="hidden clickable-image">
-                        <div class="placeholder active" id="frontPlaceholder">Adelante</div>
-                        <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar adelante">↻</button>
+                    <div class="preview-item">
+                        <div class="image-box" id="frontPreviewBox" title="Toca para acciones">
+                            <img id="frontImage" src="" alt="Adelante de la tarjeta" class="hidden clickable-image">
+                            <div class="placeholder active" id="frontPlaceholder">Adelante</div>
+                            <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar adelante">↻</button>
+                        </div>
+                        <div class="filter-controls" id="frontFilters">
+                            <button class="btn-filter active" data-filter="original" data-side="front">Original</button>
+                            <button class="btn-filter" data-filter="pro" data-side="front">Color Pro</button>
+                            <button class="btn-filter" data-filter="bw" data-side="front">B/N</button>
+                        </div>
                     </div>
-                    <div class="image-box" id="backPreviewBox" title="Toca para recortar">
-                        <img id="backImage" src="" alt="Atrás de la tarjeta" class="hidden clickable-image">
-                        <div class="placeholder active" id="backPlaceholder">Atrás</div>
-                        <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar atrás">↻</button>
+                    <div class="preview-item">
+                        <div class="image-box" id="backPreviewBox" title="Toca para acciones">
+                            <img id="backImage" src="" alt="Atrás de la tarjeta" class="hidden clickable-image">
+                            <div class="placeholder active" id="backPlaceholder">Atrás</div>
+                            <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar atrás">↻</button>
+                        </div>
+                        <div class="filter-controls" id="backFilters">
+                            <button class="btn-filter active" data-filter="original" data-side="back">Original</button>
+                            <button class="btn-filter" data-filter="pro" data-side="back">Color Pro</button>
+                            <button class="btn-filter" data-filter="bw" data-side="back">B/N</button>
+                        </div>
                     </div>
                 </div>
 
