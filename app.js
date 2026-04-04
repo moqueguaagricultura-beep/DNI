@@ -503,8 +503,8 @@ function setupHandleDrag(handle, idx) {
 
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
-    const radius = 90; // Aumentado ligeramente para mejor visibilidad
-    const zoom = 1.0; // El usuario pidió reducir el zoom a 1.0 (vista natural)
+    const radius = 120; // Círculo más grande para mejor visibilidad
+    const zoom = 0.8;   // Menos zoom (más área visible) para ver el contexto de la esquina
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
@@ -914,15 +914,15 @@ async function runOCR(side, base64) {
                 }
             }
 
-            // Excluir palabras genéricas que suelen aparecer en DNI pero no son apellidos
-            const blacklist = ['DNI', 'IDENTIDAD', 'DOCUMENTO', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA'];
-            if (blacklist.includes(firstSurname.toUpperCase())) firstSurname = '';
+            // Excluir palabras genéricas
+            const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA'];
+            if (blacklist.some(b => firstSurname.toUpperCase().includes(b))) firstSurname = '';
 
             let val = '';
             if (finalDni) val += finalDni;
             if (firstSurname) val += (val ? '_' : '') + firstSurname;
             
-            const finalName = val.toUpperCase().replace(/__+/g, '_').substring(0, 30);
+            const finalName = val.toUpperCase().replace(/__+/g, '_').substring(0, 32);
             if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {
