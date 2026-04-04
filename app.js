@@ -526,8 +526,8 @@ function drawMagnifier(ctx, img, W, H, pt) {
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(magX - 15, magY); ctx.lineTo(magX + 15, magY);
-    ctx.moveTo(magX, magY - 15); ctx.lineTo(magX, magY + 15);
+    ctx.moveTo(magX - radius, magY); ctx.lineTo(magX + radius, magY);
+    ctx.moveTo(magX, magY - radius); ctx.lineTo(magX, magY + radius);
     ctx.stroke();
     ctx.setLineDash([]);
 }
