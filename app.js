@@ -521,7 +521,15 @@ function drawMagnifier(ctx, img, W, H, pt) {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Eliminada cruz interna a petición de usuario ("sin otros círculos dentro")
+    // 5. Cruz central en la lupa (restaurada por petición del usuario)
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(magX - 15, magY); ctx.lineTo(magX + 15, magY);
+    ctx.moveTo(magX, magY - 15); ctx.lineTo(magX, magY + 15);
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 function handlePerspCancel() {
@@ -967,13 +975,33 @@ function applyImageFilter(base64, type) {
                     data[i] = data[i+1] = data[i+2] = v;
                 }
             } else if (type === 'pro') {
-                // Color Pro (Contraste y Brillo)
-                const contrast = 1.3; // +30%
-                const brightness = 10;
+                // Color Pro: Normalización Automática de Tonos (Auto-Levels)
+                // 1. Encontrar mínimos y máximos de brillo (percentiles 5 y 95 para estabilidad)
+                let br = new Int32Array(256);
                 for (let i = 0; i < data.length; i += 4) {
-                    data[i]   = (data[i]   - 128) * contrast + 128 + brightness;
-                    data[i+1] = (data[i+1] - 128) * contrast + 128 + brightness;
-                    data[i+2] = (data[i+2] - 128) * contrast + 128 + brightness;
+                    const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                    br[Math.floor(lum)]++;
+                }
+                
+                let total = data.length/4;
+                let minVal = 0, maxVal = 255;
+                let count = 0;
+                for (let i = 0; i < 256; i++) {
+                    count += br[i];
+                    if (count > total * 0.05) { minVal = i; break; }
+                }
+                count = 0;
+                for (let i = 255; i >= 0; i--) {
+                    count += br[i];
+                    if (count > total * 0.05) { maxVal = i; break; }
+                }
+                
+                // 2. Estirar el histograma (Normalizar)
+                const range = maxVal - minVal || 1;
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i]   = Math.min(255, Math.max(0, (data[i]   - minVal) * (255 / range)));
+                    data[i+1] = Math.min(255, Math.max(0, (data[i+1] - minVal) * (255 / range)));
+                    data[i+2] = Math.min(255, Math.max(0, (data[i+2] - minVal) * (255 / range)));
                 }
             }
             ctx.putImageData(imageData, 0, 0);
