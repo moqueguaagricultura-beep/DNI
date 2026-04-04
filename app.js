@@ -75,12 +75,26 @@ const refs = {
 document.addEventListener('DOMContentLoaded', () => {
     initCamera();
     bindEvents();
+    registerSW();
+    initNavigation();
 });
+
+function registerSW() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            // .then(() => console.log('SW Registered'))
+            .catch(err => console.error('SW Error', err));
+    }
+}
 
 function initCamera() {
     refs.cameraInput.value = '';
     hideAll();
     refs.cameraSection.classList.remove('hidden');
+    // Al iniciar, nos aseguramos de que el estado de historia esté limpio para la cámara
+    if (history.state?.section !== 'camera') {
+        history.replaceState({ section: 'camera' }, '');
+    }
 }
 
 function hideAll() {
@@ -88,6 +102,31 @@ function hideAll() {
     refs.perspectiveSection.classList.add('hidden');
     refs.cropperSection.classList.add('hidden');
     refs.previewSection.classList.add('hidden');
+}
+
+// Navegación con botón atrás
+function initNavigation() {
+    window.addEventListener('popstate', (event) => {
+        const section = event.state?.section || 'camera';
+        showSection(section, true); // true para no hacer pushState de nuevo
+    });
+}
+
+function showSection(sectionId, isBack = false) {
+    hideAll();
+    const sectionMap = {
+        'camera':      refs.cameraSection,
+        'perspective': refs.perspectiveSection,
+        'cropper':     refs.cropperSection,
+        'preview':     refs.previewSection
+    };
+    
+    const target = sectionMap[sectionId] || refs.cameraSection;
+    target.classList.remove('hidden');
+
+    if (!isBack) {
+        history.pushState({ section: sectionId }, '');
+    }
 }
 
 function bindEvents() {
@@ -180,8 +219,7 @@ function openPerspective(base64) {
         drawPerspOverlay();
         positionHandles();
 
-        hideAll();
-        refs.perspectiveSection.classList.remove('hidden');
+        showSection('perspective');
 
         const handles = [refs.handleTL, refs.handleTR, refs.handleBR, refs.handleBL];
         handles.forEach((h, i) => setupHandleDrag(h, i));
@@ -503,12 +541,11 @@ function drawMagnifier(ctx, img, W, H, pt) {
 }
 
 function handlePerspCancel() {
-    hideAll();
     const isFlowComplete = state.frontImageBase64 && state.backImageBase64;
     if (!isFlowComplete) {
         initCamera();
     } else {
-        refs.previewSection.classList.remove('hidden');
+        showSection('preview');
     }
 }
 
@@ -530,8 +567,6 @@ async function handlePerspApply() {
     refs.applyPerspBtn.textContent = '▶ Corregir';
     refs.applyPerspBtn.disabled = false;
 
-    hideAll();
-
     if (state.editingSide === 'front') {
         state.frontImageBase64 = warped;
         updatePreviewUI('front', warped);
@@ -540,13 +575,13 @@ async function handlePerspApply() {
             refs.captureInstruction.textContent = 'Tomar Foto Atrás';
             initCamera();
         } else {
-            refs.previewSection.classList.remove('hidden');
+            showSection('preview');
             checkReadyState();
         }
     } else {
         state.backImageBase64 = warped;
         updatePreviewUI('back', warped);
-        refs.previewSection.classList.remove('hidden');
+        showSection('preview');
         checkReadyState();
     }
 }
@@ -668,8 +703,7 @@ function openCropper(side) {
     state.editingSide = side;
     const b64 = side === 'front' ? state.frontImageBase64 : state.backImageBase64;
 
-    hideAll();
-    refs.cropperSection.classList.remove('hidden');
+    showSection('cropper');
 
     if (state.cropperInfo) { state.cropperInfo.destroy(); state.cropperInfo = null; }
     refs.cropperImage.src = b64;
@@ -681,8 +715,7 @@ function openCropper(side) {
 
 function handleCropCancel() {
     if (state.cropperInfo) { state.cropperInfo.destroy(); state.cropperInfo = null; }
-    hideAll();
-    refs.previewSection.classList.remove('hidden');
+    showSection('preview');
 }
 
 function handleCropConfirm() {
@@ -700,8 +733,7 @@ function handleCropConfirm() {
         state.backImageBase64 = cropped;
         updatePreviewUI('back', cropped);
     }
-    hideAll();
-    refs.previewSection.classList.remove('hidden');
+    showSection('preview');
     checkReadyState();
 }
 
@@ -722,7 +754,6 @@ function updatePreviewUI(side, b64) {
 function retakePhoto(side) {
     state.currentCaptureMode = side;
     refs.captureInstruction.textContent = side === 'front' ? 'Tomar Foto Adelante' : 'Tomar Foto Atrás';
-    hideAll();
     initCamera();
 }
 

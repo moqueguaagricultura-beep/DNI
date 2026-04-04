@@ -1,0 +1,22 @@
+{
+  "name": "Escáner DNI Pro",
+  "short_name": "DNI Pro",
+  "description": "Escanea y genera PDFs de tu DNI de forma fácil y segura.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
