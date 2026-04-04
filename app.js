@@ -986,22 +986,29 @@ function applyImageFilter(base64, type) {
                 let total = data.length/4;
                 let minVal = 0, maxVal = 255;
                 let count = 0;
+                // Percentil 1% para sombras más naturales
                 for (let i = 0; i < 256; i++) {
                     count += br[i];
-                    if (count > total * 0.05) { minVal = i; break; }
+                    if (count > total * 0.01) { minVal = i; break; }
                 }
                 count = 0;
+                // Percentil 99% para luces más naturales
                 for (let i = 255; i >= 0; i--) {
                     count += br[i];
-                    if (count > total * 0.05) { maxVal = i; break; }
+                    if (count > total * 0.01) { maxVal = i; break; }
                 }
                 
-                // 2. Estirar el histograma (Normalizar)
+                // 2. Estirar el histograma y MEZCLAR con original para evitar saturación
                 const range = maxVal - minVal || 1;
+                const alpha = 0.7; // 70% normalizado, 30% original
                 for (let i = 0; i < data.length; i += 4) {
-                    data[i]   = Math.min(255, Math.max(0, (data[i]   - minVal) * (255 / range)));
-                    data[i+1] = Math.min(255, Math.max(0, (data[i+1] - minVal) * (255 / range)));
-                    data[i+2] = Math.min(255, Math.max(0, (data[i+2] - minVal) * (255 / range)));
+                    const normR = Math.min(255, Math.max(0, (data[i]   - minVal) * (255 / range)));
+                    const normG = Math.min(255, Math.max(0, (data[i+1] - minVal) * (255 / range)));
+                    const normB = Math.min(255, Math.max(0, (data[i+2] - minVal) * (255 / range)));
+
+                    data[i]   = data[i]   * (1 - alpha) + normR * alpha;
+                    data[i+1] = data[i+1] * (1 - alpha) + normG * alpha;
+                    data[i+2] = data[i+2] * (1 - alpha) + normB * alpha;
                 }
             }
             ctx.putImageData(imageData, 0, 0);
