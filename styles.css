@@ -344,6 +344,13 @@ input[type="text"]:focus {
     width: 100%;
 }
 
+.action-buttons-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
 /* Buttons */
 .btn {
     padding: 14px 20px;

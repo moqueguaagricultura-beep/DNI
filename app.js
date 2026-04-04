@@ -59,6 +59,13 @@ const refs = {
     errorModal:        document.getElementById('errorModal'),
     errorMessage:      document.getElementById('errorMessage'),
     closeModalBtn:     document.getElementById('closeModalBtn'),
+
+    // Modal de acción (revisión)
+    actionModal:       document.getElementById('actionModal'),
+    cropCurrentBtn:    document.getElementById('cropCurrentBtn'),
+    changeImageBtn:    document.getElementById('changeImageBtn'),
+    cancelActionBtn:   document.getElementById('cancelActionBtn'),
+    galleryInput:      document.getElementById('galleryInput'),
 };
 
 // ============================================================
@@ -94,9 +101,20 @@ function bindEvents() {
     refs.confirmCropBtn.addEventListener('click', handleCropConfirm);
     refs.cancelCropBtn.addEventListener('click', handleCropCancel);
 
-    // Tocar miniatura → edición con cropper
-    refs.frontImage.addEventListener('click', () => openCropper('front'));
-    refs.backImage.addEventListener('click', () => openCropper('back'));
+    // Tocar miniatura → elegir acción
+    refs.frontImage.addEventListener('click', () => openActionModal('front'));
+    refs.backImage.addEventListener('click', () => openActionModal('back'));
+
+    refs.cropCurrentBtn.addEventListener('click', () => {
+        closeActionModal();
+        openCropper(state.editingSide);
+    });
+    refs.changeImageBtn.addEventListener('click', () => {
+        closeActionModal();
+        refs.galleryInput.click();
+    });
+    refs.cancelActionBtn.addEventListener('click', closeActionModal);
+    refs.galleryInput.addEventListener('change', handleGallerySelect);
 
     refs.retakeFrontBtn.addEventListener('click', () => retakePhoto('front'));
     refs.retakeBackBtn.addEventListener('click', () => retakePhoto('back'));
@@ -434,7 +452,7 @@ function setupHandleDrag(handle, idx) {
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
     const radius = 80;
-    const zoom = 2.4;
+    const zoom = 1.8; // El usuario pidió reducir un poco el zoom
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
@@ -783,5 +801,26 @@ async function shareBlob(blob, fname, title) {
 // ============================================================
 // UTILIDADES
 // ============================================================
+function openActionModal(side) {
+    state.editingSide = side;
+    refs.actionModal.classList.remove('hidden');
+}
+
+function closeActionModal() {
+    refs.actionModal.classList.add('hidden');
+}
+
+function handleGallerySelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        openPerspective(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Resetear para permitir seleccionar el mismo otra vez
+}
+
 function showError(msg) { refs.errorMessage.textContent = msg; refs.errorModal.classList.remove('hidden'); }
 function hideError()    { refs.errorModal.classList.add('hidden'); }

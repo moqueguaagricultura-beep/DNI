@@ -116,8 +116,22 @@
         </div>
     </div>
 
+    <!-- Choice Modal (Editar/Cambiar) -->
+    <div class="modal hidden" id="actionModal">
+        <div class="modal-content">
+            <h3>¿Qué deseas hacer?</h3>
+            <p>Puedes recortar la imagen seleccionada o cambiarla por una de tu galería.</p>
+            <div class="action-buttons-vertical">
+                <button class="btn btn-primary" id="cropCurrentBtn">Recortar Actual</button>
+                <button class="btn btn-secondary" id="changeImageBtn">Cambiar Imagen</button>
+                <button class="btn btn-danger" id="cancelActionBtn" style="margin-top:10px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Cropper.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="app.js?v=15"></script>
+    <input type="file" id="galleryInput" accept="image/*" class="hidden">
+    <script src="app.js?v=16"></script>
 </body>
 </html>
