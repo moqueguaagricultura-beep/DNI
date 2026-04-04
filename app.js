@@ -760,6 +760,8 @@ function checkReadyState() {
     const ok = state.frontImageBase64 && state.backImageBase64;
     refs.generatePdfBtn.disabled = !ok;
     refs.sharePdfBtn.disabled    = !(ok && (navigator.canShare || window.navigator.share));
+    
+    if (ok) balanceBrightness();
 }
 
 // ============================================================
@@ -915,11 +917,12 @@ async function runOCR(side, base64) {
             const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA', 'PRIMER', 'SEGUNDO', 'APELLIDO'];
             if (blacklist.some(b => firstSurname.toUpperCase().includes(b))) firstSurname = '';
 
-            // 3. Montar nombre como DNI_[NUMERO]
-            let val = 'DNI';
-            if (finalDni) val += '_' + finalDni;
+            // 3. Montar nombre como DNI [NUMERO] [APELLIDO]
+            let val = 'DNI ';
+            if (finalDni) val += finalDni;
+            if (firstSurname) val += ' ' + firstSurname;
             
-            const finalName = val.toUpperCase().replace(/__+/g, '_').replace(/^_|_$/g, '').substring(0, 30);
+            const finalName = val.toUpperCase().trim().substring(0, 40);
             if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {
@@ -968,28 +971,21 @@ function applyImageFilter(base64, type) {
             const data = imageData.data;
 
             if (type === 'bw') {
-                // Blanco y Negro (Thresholding)
                 for (let i = 0; i < data.length; i += 4) {
                     const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                    const v = gray > 140 ? 255 : 0; // Umbral fijo
+                    const v = gray > 140 ? 255 : 0;
                     data[i] = data[i+1] = data[i+2] = v;
                 }
             } else if (type === 'pro') {
-                // Color Pro: Enfoque en NITIDEZ manteniendo el Color Original
-                // 1. Aumento leve de contraste/brillo para "limpiar" el ruido del papel
-                const contrast = 1.12; 
-                const brightness = 6;
-                const alpha = 0.15; // Solo un 15% de efecto procesado para mantener color natural
+                const contrast = 1.15; 
+                const brightness = 8;
+                const alpha = 0.25; 
                 
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i], g = data[i+1], b = data[i+2];
-                    
-                    // Versión ligeramente procesada (más clara y contrastada)
                     const procR = Math.min(255, (r - 128) * contrast + 128 + brightness);
                     const procG = Math.min(255, (g - 128) * contrast + 128 + brightness);
                     const procB = Math.min(255, (b - 128) * contrast + 128 + brightness);
-                    
-                    // Mezclar con original (85% original / 15% procesado)
                     data[i]   = r * (1 - alpha) + procR * alpha;
                     data[i+1] = g * (1 - alpha) + procG * alpha;
                     data[i+2] = b * (1 - alpha) + procB * alpha;
@@ -999,6 +995,63 @@ function applyImageFilter(base64, type) {
             resolve(canvas.toDataURL('image/jpeg', 0.92));
         };
         img.src = base64;
+    });
+}
+
+// Balancear brillo entre ambas caras para que el PDF sea uniforme
+async function balanceBrightness() {
+    if (!state.frontImageBase64 || !state.backImageBase64) return;
+
+    const getB = (b64) => new Promise(res => {
+        const i = new Image();
+        i.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = 50; c.height = 30; // Muy pequeño para velocidad
+            const ctx = c.getContext('2d');
+            ctx.drawImage(i, 0, 0, 50, 30);
+            const d = ctx.getImageData(0, 0, 50, 30).data;
+            let s = 0;
+            for(let j=0; j<d.length; j+=4) s += (d[j]+d[j+1]+d[j+2])/3;
+            res(s / (50*30));
+        };
+        i.src = b64;
+    });
+
+    const bF = await getB(state.frontImageBase64);
+    const bB = await getB(state.backImageBase64);
+    const diff = bF - bB; // >0 si adelante es más brillante
+
+    if (Math.abs(diff) > 20) {
+        // Aclarar el más oscuro para igualar al más claro
+        if (diff > 0) {
+            state.backImageBase64 = await adjustBrightness(state.backImageBase64, diff * 0.82);
+            refs.backImage.src = state.backImageBase64;
+        } else {
+            state.frontImageBase64 = await adjustBrightness(state.frontImageBase64, (-diff) * 0.82);
+            refs.frontImage.src = state.frontImageBase64;
+        }
+    }
+}
+
+function adjustBrightness(b64, amount) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = id.data;
+            for(let i=0; i<d.length; i+=4) {
+                d[i] = Math.min(255, d[i] + amount);
+                d[i+1] = Math.min(255, d[i+1] + amount);
+                d[i+2] = Math.min(255, d[i+2] + amount);
+            }
+            ctx.putImageData(id, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.src = b64;
     });
 }
 
