@@ -232,96 +232,79 @@ function openPerspective(base64) {
     img.src = base64;
 }
 
-// Auto-detección de los 4 bordes de la tarjeta por proyección de gradiente
+// Auto-detección mejorada de los 4 bordes de la tarjeta
 function autoDetectCorners(img, cW, cH) {
-    const SMALL = 180;
+    const SMALL = 250; // Resolución ligeramente mayor para mejor detalle
     const sw = SMALL;
     const sh = Math.round(SMALL * img.height / img.width);
 
     const tc = document.createElement('canvas');
     tc.width = sw; tc.height = sh;
     const tctx = tc.getContext('2d');
+    
+    // Aplicar un poco de contraste antes de procesar
+    tctx.filter = 'contrast(1.4) grayscale(1)';
     tctx.drawImage(img, 0, 0, sw, sh);
     const pixels = tctx.getImageData(0, 0, sw, sh).data;
 
-    const gray = (x, y) => {
+    const getVal = (x, y) => {
         if (x < 0 || x >= sw || y < 0 || y >= sh) return 128;
-        const i = (y * sw + x) * 4;
-        return 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
+        return pixels[(y * sw + x) * 4]; // Grayscale ya aplicado por filter
     };
+
     const grad = (x, y) => {
-        const dx = gray(x+1,y) - gray(x-1,y);
-        const dy = gray(x,y+1) - gray(x,y-1);
+        const dx = getVal(x+1,y) - getVal(x-1,y);
+        const dy = getVal(x,y+1) - getVal(x,y-1);
         return Math.sqrt(dx*dx + dy*dy);
     };
 
-    const hProj = Array.from({length: sh}, (_, y) => {
-        let s = 0;
-        for (let x = 0; x < sw; x++) s += grad(x, y);
-        return s / sw;
-    });
-    const vProj = Array.from({length: sw}, (_, x) => {
-        let s = 0;
-        for (let y = 0; y < sh; y++) s += grad(x, y);
-        return s / sh;
-    });
+    // Proyecciones con pesos para ignorar ruidos en los bordes extremos del canvas
+    const hProj = new Float32Array(sh);
+    const vProj = new Float32Array(sw);
+    for (let y = 0; y < sh; y++) {
+        for (let x = 0; x < sw; x++) {
+            const g = grad(x, y);
+            hProj[y] += g;
+            vProj[x] += g;
+        }
+    }
 
-    const peakIn = (arr, from, to) => {
-        let best = from, bestVal = 0;
+    const findBestEdge = (arr, from, to) => {
+        let best = from, maxVal = 0;
         for (let i = from; i < to; i++) {
-            if (arr[i] > bestVal) { bestVal = arr[i]; best = i; }
+            if (arr[i] > maxVal) { maxVal = arr[i]; best = i; }
         }
         return best;
     };
 
-    const margin = 0.08;
-    const topY    = peakIn(hProj, Math.floor(sh * margin),    Math.floor(sh * 0.45));
-    const bottomY = peakIn(hProj, Math.floor(sh * 0.55), Math.floor(sh * (1-margin)));
-    const leftX   = peakIn(vProj, Math.floor(sw * margin),    Math.floor(sw * 0.45));
-    const rightX  = peakIn(vProj, Math.floor(sw * 0.55), Math.floor(sw * (1-margin)));
+    // Buscar bordes dentro de márgenes razonables (10% a 90% de la imagen)
+    const topY    = findBestEdge(hProj, Math.floor(sh * 0.05), Math.floor(sh * 0.40));
+    const bottomY = findBestEdge(hProj, Math.floor(sh * 0.60), Math.floor(sh * 0.95));
+    const leftX   = findBestEdge(vProj, Math.floor(sw * 0.05), Math.floor(sw * 0.40));
+    const rightX  = findBestEdge(vProj, Math.floor(sw * 0.60), Math.floor(sw * 0.95));
 
-    // VALIDACIÓN DE RATIO (DNI estándar ~ 1.585)
-    // rightX-leftX / bottomY-topY
-    const detectedW = rightX - leftX;
-    const detectedH = bottomY - topY;
-    const detectedRatio = detectedW / detectedH;
     const DNI_RATIO = 1.585;
-
-    // Si la detección es absurda (muy pequeña o ratio muy desviado), usar fallback central
-    const isAbsurd = (detectedW < sw * 0.2) || (detectedH < sh * 0.2) || 
-                     (detectedRatio < 1.1) || (detectedRatio > 2.1);
-
-    if (isAbsurd) {
-        // Generar un rectángulo centrado con el ratio correcto
-        const targetW = sw * 0.8;
-        const targetH = targetW / DNI_RATIO;
-        const x0 = (sw - targetW) / 2;
-        const y0 = (sh - targetH) / 2;
-        
-        const scaleX = cW / sw, scaleY = cH / sh;
-        return [
-            { x: x0 * scaleX,             y: y0 * scaleY },
-            { x: (x0 + targetW) * scaleX, y: y0 * scaleY },
-            { x: (x0 + targetW) * scaleX, y: (y0 + targetH) * scaleY },
-            { x: x0 * scaleX,             y: (y0 + targetH) * scaleY },
+    const scaleX = cW / sw, scaleY = cH / sh;
+    
+    // Si los puntos son demasiado erráticos, fallback al centro
+    if ((rightX - leftX) < sw * 0.3) {
+        const tw = sw * 0.85;
+        const th = tw / DNI_RATIO;
+        const pts = [
+            { x: (sw-tw)/2, y: (sh-th)/2 },
+            { x: (sw+tw)/2, y: (sh-th)/2 },
+            { x: (sw+tw)/2, y: (sh+th)/2 },
+            { x: (sw-tw)/2, y: (sh+th)/2 }
         ];
+        return pts.map(p => ({ x: p.x * scaleX, y: p.y * scaleY }));
     }
 
-    const scaleX = cW / sw, scaleY = cH / sh;
-    const pad = 2; 
-
-    // MEJORA: Validar si los puntos detectados forman un polígono cóncavo o muy deformado
-    const points = [
-        { x: leftX  * scaleX - pad, y: topY    * scaleY - pad }, // TL
-        { x: rightX * scaleX + pad, y: topY    * scaleY - pad }, // TR
-        { x: rightX * scaleX + pad, y: bottomY * scaleY + pad }, // BR
-        { x: leftX  * scaleX - pad, y: bottomY * scaleY + pad }, // BL
+    return [
+        { x: leftX * scaleX,  y: topY * scaleY },
+        { x: rightX * scaleX, y: topY * scaleY },
+        { x: rightX * scaleX, y: bottomY * scaleY },
+        { x: leftX * scaleX,  y: bottomY * scaleY }
     ];
-
-    return points.map(pt => ({
-        x: Math.min(Math.max(pt.x, 0), cW),
-        y: Math.min(Math.max(pt.y, 0), cH),
-    }));
 }
 
 function drawPerspOverlay() {
@@ -503,8 +486,8 @@ function setupHandleDrag(handle, idx) {
 
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
-    const radius = 120; // Círculo más grande para mejor visibilidad
-    const zoom = 0.8;   // Menos zoom (más área visible) para ver el contexto de la esquina
+    const radius = 100; // Radio 100
+    const zoom = 0.6;   // Zoom 0.6
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
@@ -888,14 +871,11 @@ async function runOCR(side, base64) {
         const dniMatch = text.match(/\b\d{8}\b/);
         
         // 2. Extraer apellidos y nombres
-        // Buscamos líneas que solo tengan mayúsculas (común en DNI)
         const namesFound = [];
         lines.forEach(line => {
-            // Si la línea es puramente mayúsculas y tiene espacios
             if (/^[A-ZÑÁÉÍÓÚ\s]+$/.test(line) && line.includes(' ')) {
                 namesFound.push(line);
             } else {
-                // O si tiene palabras sueltas en mayúsculas de 3+ letras
                 const parts = line.split(/\s+/).filter(p => /^[A-ZÑÁÉÍÓÚ]{3,}$/.test(p));
                 if (parts.length >= 1) namesFound.push(parts.join(' '));
             }
@@ -905,17 +885,34 @@ async function runOCR(side, base64) {
             let finalDni = dniMatch ? dniMatch[0] : '';
             let firstSurname = '';
             
-            // Buscar la primera palabra en mayúsculas de 3+ letras de los nombres encontrados
-            for (const nameGroup of namesFound) {
-                const words = nameGroup.split(/\s+/).filter(w => w.length >= 3);
-                if (words.length > 0) {
-                    firstSurname = words[0];
-                    break;
+            // Lógica avanzada para DNI Peruano (Adelante)
+            if (side === 'front') {
+                // Buscar etiqueta "PRIMER APELLIDO" o similar
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].toUpperCase();
+                    if (line.includes('APELLIDO') || line.includes('PRIMER')) {
+                        // El apellido suele ser la siguiente línea significativa
+                        if (lines[i+1] && /^[A-ZÑÁÉÍÓÚ\s]+$/.test(lines[i+1])) {
+                            firstSurname = lines[i+1].split(/\s+/)[0];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Si no se encontró por etiqueta, usar fallback de la primera palabra capturada
+            if (!firstSurname) {
+                for (const nameGroup of namesFound) {
+                    const words = nameGroup.split(/\s+/).filter(w => w.length >= 3);
+                    if (words.length > 0) {
+                        firstSurname = words[0];
+                        break;
+                    }
                 }
             }
 
             // Excluir palabras genéricas
-            const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA'];
+            const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA', 'PRIMER', 'SEGUNDO', 'APELLIDO'];
             if (blacklist.some(b => firstSurname.toUpperCase().includes(b))) firstSurname = '';
 
             let val = '';
