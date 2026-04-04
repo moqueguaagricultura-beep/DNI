@@ -7,10 +7,11 @@ const state = {
     currentCaptureMode: 'front', // 'front' | 'back'
     editingSide: null,           // 'front' | 'back'
     // Perspectiva
-    perspSrc: null,              // base64 original de la foto nativa
-    perspImg: null,              // HTMLImageElement cargado
-    perspCorners: null,          // [{x,y}] en coords del canvas
-    perspScale: 1,               // ratio: imgPx = canvasPx * perspScale
+    perspSrc: null,
+    perspImg: null,
+    perspCorners: null,
+    perspScale: 1,
+    activeDragCorner: null, // índice 0-3 del handle que se está arrastrando
     // Cropper (edición desde galería)
     cropperInfo: null,
 };
@@ -131,7 +132,6 @@ function openPerspective(base64) {
     img.onload = () => {
         state.perspImg = img;
 
-        // Dimensiones del canvas de visualización
         const container = refs.perspContainer;
         const maxW = container.clientWidth || window.innerWidth - 40;
         const maxH = Math.round(window.innerHeight * 0.58);
@@ -143,7 +143,7 @@ function openPerspective(base64) {
         const cW = Math.round(img.width  * scale);
         const cH = Math.round(img.height * scale);
 
-        state.perspScale = 1 / scale; // canvas→image multiplier
+        state.perspScale = 1 / scale;
 
         const canvas = refs.perspCanvas;
         canvas.width  = cW;
@@ -151,14 +151,8 @@ function openPerspective(base64) {
         canvas.style.width  = cW + 'px';
         canvas.style.height = cH + 'px';
 
-        // Esquinas iniciales: 12% de margen
-        const m = 0.12;
-        state.perspCorners = [
-            { x: cW * m,       y: cH * m },       // TL
-            { x: cW * (1 - m), y: cH * m },       // TR
-            { x: cW * (1 - m), y: cH * (1 - m) }, // BR
-            { x: cW * m,       y: cH * (1 - m) }  // BL
-        ];
+        // Intentar auto-detectar bordes de la tarjeta
+        state.perspCorners = autoDetectCorners(img, cW, cH);
 
         drawPerspOverlay();
         positionHandles();
@@ -166,11 +160,98 @@ function openPerspective(base64) {
         hideAll();
         refs.perspectiveSection.classList.remove('hidden');
 
-        // Configurar arrastre de cada handle
         const handles = [refs.handleTL, refs.handleTR, refs.handleBR, refs.handleBL];
         handles.forEach((h, i) => setupHandleDrag(h, i));
     };
     img.src = base64;
+}
+
+// Auto-detección de los 4 bordes de la tarjeta por proyección de gradiente
+function autoDetectCorners(img, cW, cH) {
+    const SMALL = 180;
+    const sw = SMALL;
+    const sh = Math.round(SMALL * img.height / img.width);
+
+    const tc = document.createElement('canvas');
+    tc.width = sw; tc.height = sh;
+    const tctx = tc.getContext('2d');
+    tctx.drawImage(img, 0, 0, sw, sh);
+    const pixels = tctx.getImageData(0, 0, sw, sh).data;
+
+    const gray = (x, y) => {
+        if (x < 0 || x >= sw || y < 0 || y >= sh) return 128;
+        const i = (y * sw + x) * 4;
+        return 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
+    };
+    const grad = (x, y) => {
+        const dx = gray(x+1,y) - gray(x-1,y);
+        const dy = gray(x,y+1) - gray(x,y-1);
+        return Math.sqrt(dx*dx + dy*dy);
+    };
+
+    const hProj = Array.from({length: sh}, (_, y) => {
+        let s = 0;
+        for (let x = 0; x < sw; x++) s += grad(x, y);
+        return s / sw;
+    });
+    const vProj = Array.from({length: sw}, (_, x) => {
+        let s = 0;
+        for (let y = 0; y < sh; y++) s += grad(x, y);
+        return s / sh;
+    });
+
+    const peakIn = (arr, from, to) => {
+        let best = from, bestVal = 0;
+        for (let i = from; i < to; i++) {
+            if (arr[i] > bestVal) { bestVal = arr[i]; best = i; }
+        }
+        return best;
+    };
+
+    const margin = 0.08;
+    const topY    = peakIn(hProj, Math.floor(sh * margin),    Math.floor(sh * 0.45));
+    const bottomY = peakIn(hProj, Math.floor(sh * 0.55), Math.floor(sh * (1-margin)));
+    const leftX   = peakIn(vProj, Math.floor(sw * margin),    Math.floor(sw * 0.45));
+    const rightX  = peakIn(vProj, Math.floor(sw * 0.55), Math.floor(sw * (1-margin)));
+
+    // VALIDACIÓN DE RATIO (DNI estándar ~ 1.585)
+    // rightX-leftX / bottomY-topY
+    const detectedW = rightX - leftX;
+    const detectedH = bottomY - topY;
+    const detectedRatio = detectedW / detectedH;
+    const DNI_RATIO = 1.585;
+
+    // Si la detección es absurda (muy pequeña o ratio muy desviado), usar fallback central
+    const isAbsurd = (detectedW < sw * 0.2) || (detectedH < sh * 0.2) || 
+                     (detectedRatio < 1.1) || (detectedRatio > 2.1);
+
+    if (isAbsurd) {
+        // Generar un rectángulo centrado con el ratio correcto
+        const targetW = sw * 0.8;
+        const targetH = targetW / DNI_RATIO;
+        const x0 = (sw - targetW) / 2;
+        const y0 = (sh - targetH) / 2;
+        
+        const scaleX = cW / sw, scaleY = cH / sh;
+        return [
+            { x: x0 * scaleX,             y: y0 * scaleY },
+            { x: (x0 + targetW) * scaleX, y: y0 * scaleY },
+            { x: (x0 + targetW) * scaleX, y: (y0 + targetH) * scaleY },
+            { x: x0 * scaleX,             y: (y0 + targetH) * scaleY },
+        ];
+    }
+
+    const scaleX = cW / sw, scaleY = cH / sh;
+    const pad = 2; 
+    return [
+        { x: leftX  * scaleX - pad, y: topY    * scaleY - pad }, // TL
+        { x: rightX * scaleX + pad, y: topY    * scaleY - pad }, // TR
+        { x: rightX * scaleX + pad, y: bottomY * scaleY + pad }, // BR
+        { x: leftX  * scaleX - pad, y: bottomY * scaleY + pad }, // BL
+    ].map(pt => ({
+        x: Math.min(Math.max(pt.x, 0), cW),
+        y: Math.min(Math.max(pt.y, 0), cH),
+    }));
 }
 
 function drawPerspOverlay() {
@@ -248,28 +329,44 @@ function drawPerspOverlay() {
         ctx.lineTo(pt.x + d.vx * ARM, pt.y + d.vy * ARM);
         ctx.stroke();
 
-        // Círculo blanco grande en pivote
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
-        ctx.fill();
+        const isActive = state.activeDragCorner === i;
+        if (!isActive) {
+            // Círculo blanco grande en pivote
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
+            ctx.fill();
 
-        // Borde azul del círculo
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 3.5;
-        ctx.stroke();
+            // Borde azul del círculo
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
 
-        // Cruz interior
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(pt.x - 5, pt.y); ctx.lineTo(pt.x + 5, pt.y);
-        ctx.moveTo(pt.x, pt.y - 5); ctx.lineTo(pt.x, pt.y + 5);
-        ctx.stroke();
+            // Cruz interior
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(pt.x - 5, pt.y); ctx.lineTo(pt.x + 5, pt.y);
+            ctx.moveTo(pt.x, pt.y - 5); ctx.lineTo(pt.x, pt.y + 5);
+            ctx.stroke();
+        } else {
+            // Mira de precisión central (finita y semi-transparente)
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pt.x - 20, pt.y); ctx.lineTo(pt.x + 20, pt.y);
+            ctx.moveTo(pt.x, pt.y - 20); ctx.lineTo(pt.x, pt.y + 20);
+            ctx.stroke();
+        }
 
         ctx.restore();
     });
+
+    // 5. Lupa de zoom: se dibuja cuando el usuario está arrastrando una esquina
+    if (state.activeDragCorner !== null) {
+        drawMagnifier(ctx, img, W, H, c[state.activeDragCorner]);
+    }
 }
 
 function positionHandles() {
@@ -284,7 +381,7 @@ function positionHandles() {
 
 function setupHandleDrag(handle, idx) {
     const canvas = refs.perspCanvas;
-    const HALF = 28; // igual que positionHandles
+    const HALF = 28; 
 
     // Eliminar listeners previos clonando el nodo
     const fresh = handle.cloneNode(true);
@@ -293,6 +390,11 @@ function setupHandleDrag(handle, idx) {
     // Actualizar ref
     const ids = ['handleTL','handleTR','handleBR','handleBL'];
     refs[ids[idx]] = fresh;
+
+    const onStart = () => {
+        state.activeDragCorner = idx;
+        drawPerspOverlay();
+    };
 
     const onMove = (clientX, clientY) => {
         const rect = canvas.getBoundingClientRect();
@@ -306,18 +408,75 @@ function setupHandleDrag(handle, idx) {
         fresh.style.top  = (y - HALF) + 'px';
     };
 
+    const onEnd = () => {
+        state.activeDragCorner = null;
+        drawPerspOverlay();
+    };
+
     // Touch
-    fresh.addEventListener('touchstart', (e) => { e.preventDefault(); }, { passive: false });
+    fresh.addEventListener('touchstart', (e) => { 
+        e.preventDefault(); 
+        onStart(); 
+    }, { passive: false });
     fresh.addEventListener('touchmove',  (e) => {
         e.preventDefault();
         onMove(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: false });
+    fresh.addEventListener('touchend', onEnd);
 
     // Mouse (escritorio / DevTools)
     let down = false;
-    fresh.addEventListener('mousedown', () => { down = true; });
+    fresh.addEventListener('mousedown', () => { down = true; onStart(); });
     document.addEventListener('mousemove', (e) => { if (down) onMove(e.clientX, e.clientY); });
-    document.addEventListener('mouseup',   () => { down = false; });
+    document.addEventListener('mouseup',   () => { if (down) { down = false; onEnd(); } });
+}
+
+// Implementación de Lupa de Zoom
+function drawMagnifier(ctx, img, W, H, pt) {
+    const radius = 80;
+    const zoom = 2.4;
+    
+    // Posición de la lupa: esquina superior opuesta al punto que arrastramos
+    const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
+    const magY = radius + 20;
+
+    ctx.save();
+    
+    // 1. Sombras y Estilo premium
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 15;
+    
+    // 2. Dibujar círculo de recorte
+    ctx.beginPath();
+    ctx.arc(magX, magY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e293b'; 
+    ctx.fill();
+    ctx.clip();
+
+    // 3. Dibujar porción de imagen ampliada
+    const sw = radius * 2 / zoom;
+    const sh = radius * 2 / zoom;
+    const sx = pt.x * (img.width / W) - sw/2;
+    const sy = pt.y * (img.height / H) - sh/2;
+
+    ctx.drawImage(img, sx, sy, sw, sh, magX - radius, magY - radius, radius * 2, radius * 2);
+    
+    ctx.restore();
+
+    // 4. Borde del círculo
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // 5. Cruz central en la lupa (precisión)
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(magX - 20, magY); ctx.lineTo(magX + 20, magY);
+    ctx.moveTo(magX, magY - 20); ctx.lineTo(magX, magY + 20);
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 function handlePerspCancel() {

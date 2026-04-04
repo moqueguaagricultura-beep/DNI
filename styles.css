@@ -213,10 +213,12 @@ section {
     animation: handlePulse 1.6s ease-in-out infinite;
 }
 .persp-handle:active {
-    transform: scale(1.25);
+    transform: scale(1.1);
     cursor: grabbing;
     animation: none;
-    background: rgba(59, 130, 246, 0.4);
+    background: transparent;
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 @keyframes handlePulse {
