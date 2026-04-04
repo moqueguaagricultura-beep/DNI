@@ -486,8 +486,8 @@ function setupHandleDrag(handle, idx) {
 
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
-    const radius = 100; // Radio 100
-    const zoom = 0.6;   // Zoom 0.6
+    const radius = 100; // Pedido por usuario
+    const zoom = 0.5;   // Pedido por usuario (más contexto)
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
@@ -521,15 +521,7 @@ function drawMagnifier(ctx, img, W, H, pt) {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // 5. Cruz central en la lupa (precisión)
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(magX - 20, magY); ctx.lineTo(magX + 20, magY);
-    ctx.moveTo(magX, magY - 20); ctx.lineTo(magX, magY + 20);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Eliminada cruz interna a petición de usuario ("sin otros círculos dentro")
 }
 
 function handlePerspCancel() {
@@ -915,13 +907,11 @@ async function runOCR(side, base64) {
             const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA', 'PRIMER', 'SEGUNDO', 'APELLIDO'];
             if (blacklist.some(b => firstSurname.toUpperCase().includes(b))) firstSurname = '';
 
-            // 3. Montar nombre como DNI_[NUMERO]_[APELLIDO]
+            // 3. Montar nombre como DNI_[NUMERO]
             let val = 'DNI';
-            if (finalDni) val += (val ? '_' : '') + finalDni;
-            if (firstSurname) val += (val ? '_' : '') + firstSurname;
+            if (finalDni) val += '_' + finalDni;
             
-            // Reemplazo final estricto
-            const finalName = val.toUpperCase().replace(/__+/g, '_').replace(/^_|_$/g, '').substring(0, 35);
+            const finalName = val.toUpperCase().replace(/__+/g, '_').replace(/^_|_$/g, '').substring(0, 30);
             if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {
