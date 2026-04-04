@@ -1016,7 +1016,7 @@ function applyImageFilter(base64, type) {
 async function balanceBrightness() {
     if (!state.frontImageBase64 || !state.backImageBase64) return;
 
-    const TARGET_BRIGHTNESS = 195; // Nivel estándar óptimo
+    const TARGET_BRIGHTNESS = 185; // Bajado un poco por solicitud para mejor tono final
 
     const getB = (b64) => new Promise(res => {
         const i = new Image();
