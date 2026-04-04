@@ -912,8 +912,8 @@ async function runOCR(side, base64) {
                 }
             }
 
-            // Excluir palabras genéricas
-            const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA', 'PRIMER', 'SEGUNDO', 'APELLIDO'];
+            // Excluir palabras genéricas y etiquetas que no son apellidos
+            const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA', 'PRIMER', 'SEGUNDO', 'APELLIDO', 'CONSTANCIA', 'SUFRAGIO', 'PROVINCIA', 'DISTRITO', 'DEPARTAMENTO', 'DIRECCION', 'ESTADO', 'CIVIL'];
             if (blacklist.some(b => firstSurname.toUpperCase().includes(b))) firstSurname = '';
 
             // 3. Montar nombre como DNI [NUMERO] [APELLIDO]
