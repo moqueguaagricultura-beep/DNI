@@ -923,8 +923,11 @@ async function runOCR(side, base64) {
             if (finalDni) val += finalDni;
             if (firstSurname) val += ' ' + firstSurname;
             
+            // Si por alguna razón val quedó solo como "DNI", no sobreescribir si ya hay algo
             const finalName = val.toUpperCase().trim().substring(0, 40);
-            if (finalName) refs.fileNameInput.value = finalName;
+            if (finalName && finalName !== 'DNI') {
+                refs.fileNameInput.value = finalName;
+            }
         }
     } catch (e) {
         console.error('OCR Error:', e);
