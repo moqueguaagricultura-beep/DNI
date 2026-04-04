@@ -487,7 +487,7 @@ function setupHandleDrag(handle, idx) {
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
     const radius = 100; // Pedido por usuario
-    const zoom = 0.5;   // Pedido por usuario (más contexto)
+    const zoom = 0.4;   // Pedido por punto 0.4 (más contexto aún)
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
@@ -998,17 +998,27 @@ function applyImageFilter(base64, type) {
                     if (count > total * 0.01) { maxVal = i; break; }
                 }
                 
-                // 2. Estirar el histograma y MEZCLAR con original para evitar saturación
+                // 2. Estirar el histograma, desaturar un poco y MEZCLAR con original
                 const range = maxVal - minVal || 1;
-                const alpha = 0.7; // 70% normalizado, 30% original
+                const alpha = 0.6; // 60% normalizado, 40% original para naturalidad
+                const satScale = 0.85; // Reducir saturación un 15% adicional
+                
                 for (let i = 0; i < data.length; i += 4) {
-                    const normR = Math.min(255, Math.max(0, (data[i]   - minVal) * (255 / range)));
-                    const normG = Math.min(255, Math.max(0, (data[i+1] - minVal) * (255 / range)));
-                    const normB = Math.min(255, Math.max(0, (data[i+2] - minVal) * (255 / range)));
+                    // Normalización
+                    let nR = Math.min(255, Math.max(0, (data[i]   - minVal) * (255 / range)));
+                    let nG = Math.min(255, Math.max(0, (data[i+1] - minVal) * (255 / range)));
+                    let nB = Math.min(255, Math.max(0, (data[i+2] - minVal) * (255 / range)));
 
-                    data[i]   = data[i]   * (1 - alpha) + normR * alpha;
-                    data[i+1] = data[i+1] * (1 - alpha) + normG * alpha;
-                    data[i+2] = data[i+2] * (1 - alpha) + normB * alpha;
+                    // Desaturación básica en la parte procesada
+                    const gray = (nR + nG + nB) / 3;
+                    nR = gray + (nR - gray) * satScale;
+                    nG = gray + (nG - gray) * satScale;
+                    nB = gray + (nB - gray) * satScale;
+
+                    // Mezcla final con original
+                    data[i]   = data[i]   * (1 - alpha) + nR * alpha;
+                    data[i+1] = data[i+1] * (1 - alpha) + nG * alpha;
+                    data[i+2] = data[i+2] * (1 - alpha) + nB * alpha;
                 }
             }
             ctx.putImageData(imageData, 0, 0);
