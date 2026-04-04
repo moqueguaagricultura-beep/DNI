@@ -26,12 +26,18 @@
     box-sizing: border-box;
 }
 
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+    background-color: var(--bg-color);
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
     color: var(--text-primary);
     min-height: 100vh;
-    margin: 0;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -75,7 +81,6 @@ p, label {
     padding: var(--container-padding);
     background-color: var(--bg-color);
     position: relative;
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
 
 header {
@@ -96,6 +101,8 @@ section {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    width: 100%;
+    flex-shrink: 0;
     transition: opacity var(--transition-speed);
 }
 
