@@ -915,11 +915,13 @@ async function runOCR(side, base64) {
             const blacklist = ['DNI', 'IDENTID', 'DOCUM', 'NACIONAL', 'REGISTRO', 'PERU', 'REPUBLICA', 'PRIMER', 'SEGUNDO', 'APELLIDO'];
             if (blacklist.some(b => firstSurname.toUpperCase().includes(b))) firstSurname = '';
 
-            let val = '';
-            if (finalDni) val += finalDni;
+            // 3. Montar nombre como DNI_[NUMERO]_[APELLIDO]
+            let val = 'DNI';
+            if (finalDni) val += (val ? '_' : '') + finalDni;
             if (firstSurname) val += (val ? '_' : '') + firstSurname;
             
-            const finalName = val.toUpperCase().replace(/__+/g, '_').substring(0, 32);
+            // Reemplazo final estricto
+            const finalName = val.toUpperCase().replace(/__+/g, '_').replace(/^_|_$/g, '').substring(0, 35);
             if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {
