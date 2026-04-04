@@ -1001,7 +1001,7 @@ function applyImageFilter(base64, type) {
                 // 2. Estirar el histograma, desaturar un poco y MEZCLAR con original
                 const range = maxVal - minVal || 1;
                 const alpha = 0.6; // 60% normalizado, 40% original
-                const satScale = 0.10; // Saturación al 10% según pedido
+                const satScale = 0.05; // Saturación al 5% según pedido
                 
                 for (let i = 0; i < data.length; i += 4) {
                     // Normalización
