@@ -979,7 +979,7 @@ function applyImageFilter(base64, type) {
                 }
             } else if (type === 'pro') {
                 const contrast = 1.15; 
-                const brightness = 3; // Ajustado al 1% solicitado
+                const brightness = 2; // Ajustado al 0.5% solicitado
                 const saturation = 1.005; // Saturación del 0.5%
                 const alpha = 0.30; 
                 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dni-scanner-v5';
+const CACHE_NAME = 'dni-scanner-v6';
 const ASSETS = [
   './',
   './index.html',
