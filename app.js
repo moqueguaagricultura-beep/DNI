@@ -3,10 +3,10 @@
 // ============================================================
 const state = {
     frontImageBase64: null, // Imagen final (con filtros)
-    frontRawBase64: null,   // Imagen original sin filtros para re-aplicar
+    frontRawBase64: null,   
     backImageBase64: null,
     backRawBase64: null,
-    filters: { front: 'original', back: 'original' },
+    filters: { front: 'pro', back: 'pro' },
     currentCaptureMode: 'front', // 'front' | 'back'
     editingSide: null,           // 'front' | 'back'
     // Perspectiva
@@ -171,15 +171,6 @@ function bindEvents() {
     refs.generatePdfBtn.addEventListener('click', () => handlePdfAction('download'));
     refs.sharePdfBtn.addEventListener('click', () => handlePdfAction('share'));
     refs.closeModalBtn.addEventListener('click', hideError);
-
-    // Filtros
-    document.querySelectorAll('.btn-filter').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const side   = e.target.dataset.side;
-            const filter = e.target.dataset.filter;
-            handleFilterChange(side, filter);
-        });
-    });
 }
 
 // ============================================================
@@ -581,15 +572,16 @@ async function handlePerspApply() {
     await new Promise(r => setTimeout(r, 30));
 
     const warped = await perspectiveWarp(state.perspSrc, state.perspImg, srcCorners);
+    const filtered = await applyImageFilter(warped, 'pro'); // AUTO COLOR PRO
 
     refs.applyPerspBtn.textContent = '▶ Corregir';
     refs.applyPerspBtn.disabled = false;
 
     if (state.editingSide === 'front') {
         state.frontRawBase64 = warped;
-        state.frontImageBase64 = warped; // Inicialmente igual
-        updatePreviewUI('front', warped);
-        runOCR('front', warped); // Iniciar OCR en segundo plano
+        state.frontImageBase64 = filtered; 
+        updatePreviewUI('front', filtered);
+        runOCR('front', filtered); 
 
         if (!state.backImageBase64) {
             state.currentCaptureMode = 'back';
@@ -601,9 +593,9 @@ async function handlePerspApply() {
         }
     } else {
         state.backRawBase64 = warped;
-        state.backImageBase64 = warped;
-        updatePreviewUI('back', warped);
-        runOCR('back', warped);
+        state.backImageBase64 = filtered;
+        updatePreviewUI('back', filtered);
+        runOCR('back', filtered);
 
         showSection('preview');
         checkReadyState();
@@ -889,27 +881,42 @@ async function runOCR(side, base64) {
         }
         
         const { data: { text } } = await state.ocrWorker.recognize(base64);
-        console.log(`OCR [${side}]:`, text);
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+        console.log(`OCR [${side}] Lines:`, lines);
 
-        // Buscar patrón DNI (8 dígitos juntos)
+        // 1. DNI (8 dígitos)
         const dniMatch = text.match(/\b\d{8}\b/);
-        // Buscar nombres (mayúsculas de 3+ letras, 2 palabras)
-        const nameMatch = text.match(/[A-Z]{3,}(?:\s+[A-Z]{3,})+/);
+        
+        // 2. Extraer apellidos y nombres
+        // Buscamos líneas que solo tengan mayúsculas (común en DNI)
+        const namesFound = [];
+        lines.forEach(line => {
+            // Si la línea es puramente mayúsculas y tiene espacios
+            if (/^[A-ZÑÁÉÍÓÚ\s]+$/.test(line) && line.includes(' ')) {
+                namesFound.push(line);
+            } else {
+                // O si tiene palabras sueltas en mayúsculas de 3+ letras
+                const parts = line.split(/\s+/).filter(p => /^[A-ZÑÁÉÍÓÚ]{3,}$/.test(p));
+                if (parts.length >= 1) namesFound.push(parts.join(' '));
+            }
+        });
 
-        if (dniMatch || nameMatch) {
+        if (dniMatch || namesFound.length > 0) {
             let val = refs.fileNameInput.value === 'Mi_Documento' ? '' : refs.fileNameInput.value;
             
             if (dniMatch && !val.includes(dniMatch[0])) {
                 val = `DNI_${dniMatch[0]}${val ? '_' + val : ''}`;
             }
-            if (nameMatch) {
-                const firstName = nameMatch[0].split(' ')[0];
-                if (!val.includes(firstName)) {
-                    val += (val ? '_' : '') + firstName;
+
+            // Tomar los primeros dos grupos de nombres encontrados (suelen ser Surnames y Names)
+            namesFound.slice(0, 3).forEach(nameGroup => {
+                const firstWord = nameGroup.split(' ')[0];
+                if (!val.includes(firstWord)) {
+                    val += (val ? '_' : '') + firstWord;
                 }
-            }
+            });
             
-            const finalName = val.replace(/__+/g, '_').replace(/^_|_$/g, '').substring(0, 35);
+            const finalName = val.replace(/__+/g, '_').replace(/^_|_$/g, '').toUpperCase().substring(0, 45);
             if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {

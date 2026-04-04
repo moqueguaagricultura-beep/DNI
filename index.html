@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Escáner DNI Pro</title>
+    <title>Escáner DNI Pro v2</title>
     <meta name="description" content="Escanea la parte de adelante y atrás de tu tarjeta para generar un PDF fácilmente.">
     
     <!-- PWA meta tags -->
@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-title" content="DNI Pro">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <link rel="stylesheet" href="styles.css?v=20">
+    <link rel="stylesheet" href="styles.css?v=25">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- jsPDF  -->
@@ -104,10 +104,6 @@
                                 <div class="placeholder active" id="frontPlaceholder">Adelante</div>
                                 <button class="btn-retake hidden" id="retakeFront" aria-label="Volver a tomar adelante">↻</button>
                             </div>
-                            <div class="filter-controls" id="frontFilters">
-                                <button class="btn-filter active" data-filter="original" data-side="front">Original</button>
-                                <button class="btn-filter" data-filter="pro" data-side="front">Color Pro</button>
-                                <button class="btn-filter" data-filter="bw" data-side="front">B/N</button>
                             </div>
                         </div>
                         <div class="preview-item">
@@ -116,10 +112,6 @@
                                 <div class="placeholder active" id="backPlaceholder">Atrás</div>
                                 <button class="btn-retake hidden" id="retakeBack" aria-label="Volver a tomar atrás">↻</button>
                             </div>
-                            <div class="filter-controls" id="backFilters">
-                                <button class="btn-filter active" data-filter="original" data-side="back">Original</button>
-                                <button class="btn-filter" data-filter="pro" data-side="back">Color Pro</button>
-                                <button class="btn-filter" data-filter="bw" data-side="back">B/N</button>
                             </div>
                         </div>
                     </div>
@@ -170,6 +162,6 @@
     <!-- Cropper.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <input type="file" id="galleryInput" accept="image/*" style="position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;">
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=25"></script>
 </body>
 </html>
