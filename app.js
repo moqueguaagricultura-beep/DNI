@@ -864,7 +864,9 @@ async function runOCR(side, base64) {
             state.ocrWorker = await Tesseract.createWorker('spa'); // Usar español para DNI
         }
         
-        const { data: { text } } = await state.ocrWorker.recognize(base64);
+        // Pre-procesar para resaltar los números rojos del DNI Peruano
+        const processedB64 = await preprocessForRedOCR(base64);
+        const { data: { text } } = await state.ocrWorker.recognize(processedB64);
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
         console.log(`OCR [${side}] Lines:`, lines);
 
@@ -977,8 +979,8 @@ function applyImageFilter(base64, type) {
                 }
             } else if (type === 'pro') {
                 const contrast = 1.15; 
-                const brightness = 8;
-                const alpha = 0.25; 
+                const brightness = 13; // Aumento del 5% adicional solicitado
+                const alpha = 0.30; // Un poco más de presencia del filtro para mayor claridad
                 
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i], g = data[i+1], b = data[i+2];
@@ -997,15 +999,17 @@ function applyImageFilter(base64, type) {
     });
 }
 
-// Balancear brillo entre ambas caras para que el PDF sea uniforme
+// Estandarizar brillo entre ambas caras (mismo nivel final para ambas)
 async function balanceBrightness() {
     if (!state.frontImageBase64 || !state.backImageBase64) return;
+
+    const TARGET_BRIGHTNESS = 195; // Nivel estándar óptimo
 
     const getB = (b64) => new Promise(res => {
         const i = new Image();
         i.onload = () => {
             const c = document.createElement('canvas');
-            c.width = 50; c.height = 30; // Muy pequeño para velocidad
+            c.width = 50; c.height = 30;
             const ctx = c.getContext('2d');
             ctx.drawImage(i, 0, 0, 50, 30);
             const d = ctx.getImageData(0, 0, 50, 30).data;
@@ -1018,17 +1022,16 @@ async function balanceBrightness() {
 
     const bF = await getB(state.frontImageBase64);
     const bB = await getB(state.backImageBase64);
-    const diff = bF - bB; // >0 si adelante es más brillante
 
-    if (Math.abs(diff) > 20) {
-        // Aclarar el más oscuro para igualar al más claro
-        if (diff > 0) {
-            state.backImageBase64 = await adjustBrightness(state.backImageBase64, diff * 0.82);
-            refs.backImage.src = state.backImageBase64;
-        } else {
-            state.frontImageBase64 = await adjustBrightness(state.frontImageBase64, (-diff) * 0.82);
-            refs.frontImage.src = state.frontImageBase64;
-        }
+    // Ajustar Frontal si difiere del target
+    if (Math.abs(bF - TARGET_BRIGHTNESS) > 5) {
+        state.frontImageBase64 = await adjustBrightness(state.frontImageBase64, TARGET_BRIGHTNESS - bF);
+        refs.frontImage.src = state.frontImageBase64;
+    }
+    // Ajustar Posterior si difiere del target
+    if (Math.abs(bB - TARGET_BRIGHTNESS) > 5) {
+        state.backImageBase64 = await adjustBrightness(state.backImageBase64, TARGET_BRIGHTNESS - bB);
+        refs.backImage.src = state.backImageBase64;
     }
 }
 
@@ -1049,6 +1052,28 @@ function adjustBrightness(b64, amount) {
             }
             ctx.putImageData(id, 0, 0);
             resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.src = b64;
+    });
+}
+
+function preprocessForRedOCR(b64) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = id.data;
+            for(let i=0; i<d.length; i+=4) {
+                // Énfasis en el canal rojo (70%) para resaltar el número de DNI
+                const gray = d[i] * 0.7 + d[i+1] * 0.2 + d[i+2] * 0.1;
+                d[i] = d[i+1] = d[i+2] = gray;
+            }
+            ctx.putImageData(id, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.90));
         };
         img.src = b64;
     });
