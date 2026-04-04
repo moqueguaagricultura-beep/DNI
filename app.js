@@ -578,8 +578,7 @@ async function handlePerspApply() {
         state.backRawBase64 = warped;
         state.backImageBase64 = filtered;
         updatePreviewUI('back', filtered);
-        runOCR('back', filtered);
-
+        // No correr OCR en la parte de atrás, los datos están adelante (solicitado por usuario)
         showSection('preview');
         checkReadyState();
     }
