@@ -457,7 +457,7 @@ function setupHandleDrag(handle, idx) {
 // Implementación de Lupa de Zoom
 function drawMagnifier(ctx, img, W, H, pt) {
     const radius = 80;
-    const zoom = 1.5; // El usuario pidió reducir el zoom a 1.5
+    const zoom = 1.2; // El usuario pidió reducir el zoom a 1.2
     
     // Posición de la lupa: esquina superior opuesta al punto que arrastramos
     const magX = pt.x < W / 2 ? W - radius - 20 : radius + 20;
