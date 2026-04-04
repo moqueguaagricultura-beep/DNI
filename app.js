@@ -979,8 +979,8 @@ function applyImageFilter(base64, type) {
                 }
             } else if (type === 'pro') {
                 const contrast = 1.15; 
-                const brightness = 8; // Ajustado al 3% solicitado
-                const saturation = 1.01; // Saturación del 1%
+                const brightness = 3; // Ajustado al 1% solicitado
+                const saturation = 1.005; // Saturación del 0.5%
                 const alpha = 0.30; 
                 
                 for (let i = 0; i < data.length; i += 4) {
@@ -991,7 +991,7 @@ function applyImageFilter(base64, type) {
                     g = Math.min(255, (g - 128) * contrast + 128 + brightness);
                     b = Math.min(255, (b - 128) * contrast + 128 + brightness);
 
-                    // Aplicar saturación (1%)
+                    // Aplicar saturación (0.5%)
                     const gray = 0.299 * r + 0.587 * g + 0.114 * b;
                     r = Math.min(255, Math.max(0, gray + (r - gray) * saturation));
                     g = Math.min(255, Math.max(0, gray + (g - gray) * saturation));
