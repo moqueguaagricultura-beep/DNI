@@ -979,17 +979,27 @@ function applyImageFilter(base64, type) {
                 }
             } else if (type === 'pro') {
                 const contrast = 1.15; 
-                const brightness = 13; // Aumento del 5% adicional solicitado
-                const alpha = 0.30; // Un poco más de presencia del filtro para mayor claridad
+                const brightness = 8; // Ajustado al 3% solicitado
+                const saturation = 1.01; // Saturación del 1%
+                const alpha = 0.30; 
                 
                 for (let i = 0; i < data.length; i += 4) {
-                    const r = data[i], g = data[i+1], b = data[i+2];
-                    const procR = Math.min(255, (r - 128) * contrast + 128 + brightness);
-                    const procG = Math.min(255, (g - 128) * contrast + 128 + brightness);
-                    const procB = Math.min(255, (b - 128) * contrast + 128 + brightness);
-                    data[i]   = r * (1 - alpha) + procR * alpha;
-                    data[i+1] = g * (1 - alpha) + procG * alpha;
-                    data[i+2] = b * (1 - alpha) + procB * alpha;
+                    let r = data[i], g = data[i+1], b = data[i+2];
+                    
+                    // Aplicar contraste y brillo
+                    r = Math.min(255, (r - 128) * contrast + 128 + brightness);
+                    g = Math.min(255, (g - 128) * contrast + 128 + brightness);
+                    b = Math.min(255, (b - 128) * contrast + 128 + brightness);
+
+                    // Aplicar saturación (1%)
+                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    r = Math.min(255, Math.max(0, gray + (r - gray) * saturation));
+                    g = Math.min(255, Math.max(0, gray + (g - gray) * saturation));
+                    b = Math.min(255, Math.max(0, gray + (b - gray) * saturation));
+
+                    data[i]   = data[i] * (1 - alpha) + r * alpha;
+                    data[i+1] = data[i+1] * (1 - alpha) + g * alpha;
+                    data[i+2] = data[i+2] * (1 - alpha) + b * alpha;
                 }
             }
             ctx.putImageData(imageData, 0, 0);
@@ -1068,8 +1078,11 @@ function preprocessForRedOCR(b64) {
             const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const d = id.data;
             for(let i=0; i<d.length; i+=4) {
-                // Énfasis en el canal rojo (70%) para resaltar el número de DNI
-                const gray = d[i] * 0.7 + d[i+1] * 0.2 + d[i+2] * 0.1;
+                const r = d[i], g = d[i+1], b = d[i+2];
+                // Algoritmo para convertir rojo en negro y el resto en blanco (óptimo para Tesseract)
+                // El número de DNI es rojo sobre fondo azulado/celeste.
+                const val = (g + b) - r + 160; 
+                const gray = val < 130 ? 0 : 255; 
                 d[i] = d[i+1] = d[i+2] = gray;
             }
             ctx.putImageData(id, 0, 0);
