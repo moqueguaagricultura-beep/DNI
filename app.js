@@ -975,50 +975,24 @@ function applyImageFilter(base64, type) {
                     data[i] = data[i+1] = data[i+2] = v;
                 }
             } else if (type === 'pro') {
-                // Color Pro: Normalización Automática de Tonos (Auto-Levels)
-                // 1. Encontrar mínimos y máximos de brillo (percentiles 5 y 95 para estabilidad)
-                let br = new Int32Array(256);
-                for (let i = 0; i < data.length; i += 4) {
-                    const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                    br[Math.floor(lum)]++;
-                }
-                
-                let total = data.length/4;
-                let minVal = 0, maxVal = 255;
-                let count = 0;
-                // Percentil 1% para sombras más naturales
-                for (let i = 0; i < 256; i++) {
-                    count += br[i];
-                    if (count > total * 0.01) { minVal = i; break; }
-                }
-                count = 0;
-                // Percentil 99% para luces más naturales
-                for (let i = 255; i >= 0; i--) {
-                    count += br[i];
-                    if (count > total * 0.01) { maxVal = i; break; }
-                }
-                
-                // 2. Estirar el histograma, desaturar un poco y MEZCLAR con original
-                const range = maxVal - minVal || 1;
-                const alpha = 0.6; // 60% normalizado, 40% original
-                const satScale = 0.05; // Saturación al 5% según pedido
+                // Color Pro: Enfoque en NITIDEZ manteniendo el Color Original
+                // 1. Aumento leve de contraste/brillo para "limpiar" el ruido del papel
+                const contrast = 1.12; 
+                const brightness = 6;
+                const alpha = 0.15; // Solo un 15% de efecto procesado para mantener color natural
                 
                 for (let i = 0; i < data.length; i += 4) {
-                    // Normalización
-                    let nR = Math.min(255, Math.max(0, (data[i]   - minVal) * (255 / range)));
-                    let nG = Math.min(255, Math.max(0, (data[i+1] - minVal) * (255 / range)));
-                    let nB = Math.min(255, Math.max(0, (data[i+2] - minVal) * (255 / range)));
-
-                    // Desaturación básica en la parte procesada
-                    const gray = (nR + nG + nB) / 3;
-                    nR = gray + (nR - gray) * satScale;
-                    nG = gray + (nG - gray) * satScale;
-                    nB = gray + (nB - gray) * satScale;
-
-                    // Mezcla final con original
-                    data[i]   = data[i]   * (1 - alpha) + nR * alpha;
-                    data[i+1] = data[i+1] * (1 - alpha) + nG * alpha;
-                    data[i+2] = data[i+2] * (1 - alpha) + nB * alpha;
+                    const r = data[i], g = data[i+1], b = data[i+2];
+                    
+                    // Versión ligeramente procesada (más clara y contrastada)
+                    const procR = Math.min(255, (r - 128) * contrast + 128 + brightness);
+                    const procG = Math.min(255, (g - 128) * contrast + 128 + brightness);
+                    const procB = Math.min(255, (b - 128) * contrast + 128 + brightness);
+                    
+                    // Mezclar con original (85% original / 15% procesado)
+                    data[i]   = r * (1 - alpha) + procR * alpha;
+                    data[i+1] = g * (1 - alpha) + procG * alpha;
+                    data[i+2] = b * (1 - alpha) + procB * alpha;
                 }
             }
             ctx.putImageData(imageData, 0, 0);
