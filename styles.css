@@ -31,14 +31,13 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
+    margin: 0;
     -webkit-font-smoothing: antialiased;
 }
 
 /* Typography */
 h1 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
@@ -68,6 +67,7 @@ p, label {
 /* Layout */
 .app-container {
     width: 100%;
+    margin: 0 auto;
     max-width: 480px; 
     min-height: 100vh;
     display: flex;
@@ -75,7 +75,7 @@ p, label {
     padding: var(--container-padding);
     background-color: var(--bg-color);
     position: relative;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
 
 header {
@@ -268,16 +268,17 @@ section {
 
 .images-container {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     width: 100%;
     margin-bottom: 5px;
 }
 
 .preview-item {
     flex: 1;
+    min-width: 0; /* Permite que fle-grow/shrink funcione bien en móviles */
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .filter-controls {

@@ -891,21 +891,26 @@ async function runOCR(side, base64) {
         const { data: { text } } = await state.ocrWorker.recognize(base64);
         console.log(`OCR [${side}]:`, text);
 
-        // Buscar patrón DNI (8 dígitos juntos o con separadores)
+        // Buscar patrón DNI (8 dígitos juntos)
         const dniMatch = text.match(/\b\d{8}\b/);
-        // Buscar nombres (simplificado: 2 o más palabras en mayúsculas de 3+ letras)
+        // Buscar nombres (mayúsculas de 3+ letras, 2 palabras)
         const nameMatch = text.match(/[A-Z]{3,}(?:\s+[A-Z]{3,})+/);
 
-        let currentVal = refs.fileNameInput.value;
-        if (dniMatch) {
-            currentVal = currentVal.includes('DNI_') ? currentVal : `DNI_${dniMatch[0]}`;
-        }
-        if (nameMatch && !currentVal.includes(nameMatch[0].split(' ')[0])) {
-            currentVal += `_${nameMatch[0].split(' ')[0]}`;
-        }
-        
-        if (currentVal !== refs.fileNameInput.value) {
-            refs.fileNameInput.value = currentVal.replace(/Mi_Documento_?/, '').substring(0, 30);
+        if (dniMatch || nameMatch) {
+            let val = refs.fileNameInput.value === 'Mi_Documento' ? '' : refs.fileNameInput.value;
+            
+            if (dniMatch && !val.includes(dniMatch[0])) {
+                val = `DNI_${dniMatch[0]}${val ? '_' + val : ''}`;
+            }
+            if (nameMatch) {
+                const firstName = nameMatch[0].split(' ')[0];
+                if (!val.includes(firstName)) {
+                    val += (val ? '_' : '') + firstName;
+                }
+            }
+            
+            const finalName = val.replace(/__+/g, '_').replace(/^_|_$/g, '').substring(0, 35);
+            if (finalName) refs.fileNameInput.value = finalName;
         }
     } catch (e) {
         console.error('OCR Error:', e);
