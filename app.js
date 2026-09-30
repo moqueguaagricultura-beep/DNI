@@ -1048,10 +1048,57 @@ function applyImageFilter(base64, type) {
                 }
             }
             ctx.putImageData(imageData, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg', 0.92));
+
+            // ── Nitidez: Unsharp Mask (convolución 3×3) ──────────────────
+            const sharpened = applySharpen(canvas);
+            resolve(sharpened.toDataURL('image/jpeg', 0.97));
         };
         img.src = base64;
     });
+}
+
+// Kernel de nitidez (unsharp mask): resalta bordes sin añadir ruido
+// [ 0, -1,  0]
+// [-1,  5, -1]
+// [ 0, -1,  0]
+function applySharpen(srcCanvas) {
+    const W = srcCanvas.width;
+    const H = srcCanvas.height;
+    const srcCtx = srcCanvas.getContext('2d');
+    const src = srcCtx.getImageData(0, 0, W, H);
+    const srcD = src.data;
+
+    const dst = srcCtx.createImageData(W, H);
+    const dstD = dst.data;
+
+    const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+    const kSize  = 3;
+    const half   = Math.floor(kSize / 2);
+
+    for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+            let r = 0, g = 0, b = 0;
+            for (let ky = 0; ky < kSize; ky++) {
+                for (let kx = 0; kx < kSize; kx++) {
+                    const py = Math.min(H - 1, Math.max(0, y + ky - half));
+                    const px = Math.min(W - 1, Math.max(0, x + kx - half));
+                    const k  = kernel[ky * kSize + kx];
+                    const idx = (py * W + px) * 4;
+                    r += srcD[idx]     * k;
+                    g += srcD[idx + 1] * k;
+                    b += srcD[idx + 2] * k;
+                }
+            }
+            const i = (y * W + x) * 4;
+            dstD[i]     = Math.min(255, Math.max(0, r));
+            dstD[i + 1] = Math.min(255, Math.max(0, g));
+            dstD[i + 2] = Math.min(255, Math.max(0, b));
+            dstD[i + 3] = srcD[i + 3]; // Preservar canal alpha
+        }
+    }
+
+    srcCtx.putImageData(dst, 0, 0);
+    return srcCanvas;
 }
 
 // Estandarizar brillo entre ambas caras (mismo nivel final para ambas)
