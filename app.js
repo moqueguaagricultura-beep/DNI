@@ -1058,7 +1058,7 @@ function applyImageFilter(base64, type) {
 async function balanceBrightness() {
     if (!state.frontImageBase64 || !state.backImageBase64) return;
 
-    const TARGET_BRIGHTNESS = 185; // Bajado un poco por solicitud para mejor tono final
+    const TARGET_BRIGHTNESS = 148; // Tono natural/neutro — ni muy claro ni muy oscuro
 
     const getB = (b64) => new Promise(res => {
         const i = new Image();
@@ -1078,12 +1078,12 @@ async function balanceBrightness() {
     const bF = await getB(state.frontImageBase64);
     const bB = await getB(state.backImageBase64);
 
-    // Ajustar Frontal si difiere del target
+    // Ajustar Frontal si difiere del target (en cualquier dirección)
     if (Math.abs(bF - TARGET_BRIGHTNESS) > 5) {
         state.frontImageBase64 = await adjustBrightness(state.frontImageBase64, TARGET_BRIGHTNESS - bF);
         refs.frontImage.src = state.frontImageBase64;
     }
-    // Ajustar Posterior si difiere del target
+    // Ajustar Posterior si difiere del target (en cualquier dirección)
     if (Math.abs(bB - TARGET_BRIGHTNESS) > 5) {
         state.backImageBase64 = await adjustBrightness(state.backImageBase64, TARGET_BRIGHTNESS - bB);
         refs.backImage.src = state.backImageBase64;
@@ -1101,9 +1101,10 @@ function adjustBrightness(b64, amount) {
             const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const d = id.data;
             for(let i=0; i<d.length; i+=4) {
-                d[i] = Math.min(255, d[i] + amount);
-                d[i+1] = Math.min(255, d[i+1] + amount);
-                d[i+2] = Math.min(255, d[i+2] + amount);
+                // Funciona en ambas direcciones: sube o baja el brillo según el signo de amount
+                d[i]   = Math.min(255, Math.max(0, d[i]   + amount));
+                d[i+1] = Math.min(255, Math.max(0, d[i+1] + amount));
+                d[i+2] = Math.min(255, Math.max(0, d[i+2] + amount));
             }
             ctx.putImageData(id, 0, 0);
             resolve(canvas.toDataURL('image/jpeg', 0.92));
