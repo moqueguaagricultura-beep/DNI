@@ -72,6 +72,7 @@ const refs = {
     changeImageBtn:    document.getElementById('changeImageBtn'),
     cancelActionBtn:   document.getElementById('cancelActionBtn'),
     galleryInput:      document.getElementById('galleryInput'),
+    newScanBtn:        document.getElementById('newScanBtn'),
 };
 
 // ============================================================
@@ -170,6 +171,7 @@ function bindEvents() {
 
     refs.generatePdfBtn.addEventListener('click', () => handlePdfAction('download'));
     refs.sharePdfBtn.addEventListener('click', () => handlePdfAction('share'));
+    refs.newScanBtn.addEventListener('click', resetScan);
     refs.closeModalBtn.addEventListener('click', hideError);
 }
 
@@ -752,6 +754,46 @@ function updatePreviewUI(side, b64) {
 function retakePhoto(side) {
     state.currentCaptureMode = side;
     refs.captureInstruction.textContent = side === 'front' ? 'Tomar Foto Adelante' : 'Tomar Foto Atrás';
+    initCamera();
+}
+
+function resetScan() {
+    // Limpiar imágenes del estado
+    state.frontImageBase64 = null;
+    state.frontRawBase64   = null;
+    state.backImageBase64  = null;
+    state.backRawBase64    = null;
+    state.currentCaptureMode = 'front';
+    state.editingSide = null;
+
+    // Reiniciar Cropper si estaba activo
+    if (state.cropperInfo) { state.cropperInfo.destroy(); state.cropperInfo = null; }
+
+    // Reiniciar el OCR worker si existe
+    if (state.ocrWorker) { state.ocrWorker.terminate(); state.ocrWorker = null; }
+
+    // Limpiar vistas previas
+    refs.frontImage.src = '';
+    refs.frontImage.classList.add('hidden');
+    refs.frontPlaceholder.classList.add('active');
+    refs.retakeFrontBtn.classList.add('hidden');
+
+    refs.backImage.src = '';
+    refs.backImage.classList.add('hidden');
+    refs.backPlaceholder.classList.add('active');
+    refs.retakeBackBtn.classList.add('hidden');
+
+    // Restablecer botones PDF
+    refs.generatePdfBtn.disabled = true;
+    refs.sharePdfBtn.disabled = true;
+
+    // Restablecer nombre del archivo
+    refs.fileNameInput.value = 'DNI ';
+
+    // Restablecer instrucción de captura
+    refs.captureInstruction.textContent = 'Tomar Foto Adelante';
+
+    // Volver a la pantalla de cámara
     initCamera();
 }
 

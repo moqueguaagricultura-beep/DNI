@@ -457,6 +457,15 @@ input[type="text"]:focus {
     background-color: var(--danger-hover);
 }
 
+.btn-reset {
+    background-color: #f59e0b;
+    color: white;
+    margin-top: 10px;
+}
+.btn-reset:hover:not(:disabled) {
+    background-color: #d97706;
+}
+
 .btn-circular {
     width: 72px;
     height: 72px;
